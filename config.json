@@ -1,0 +1,63 @@
+{
+    "Sensors": {
+        "S0": {
+            "enable": true,
+            "pos": {
+                "x": 0,
+                "y": 0
+            }
+        },
+        "S1": {
+            "enable": true,
+            "pos": {
+                "x": 0,
+                "y": 0
+            }
+        },
+        "S2": {
+            "enable": true,
+            "pos": {
+                "x": 0,
+                "y": 0
+            }
+        },
+        "S3": {
+            "enable": true,
+            "pos": {
+                "x": 0,
+                "y": 0
+            }
+        },
+        "S4": {
+            "enable": true,
+            "pos": {
+                "x": 0,
+                "y": 0
+            }
+        },
+        "S5": {
+            "enable": true,
+            "pos": {
+                "x": 0,
+                "y": 0
+            }
+        },
+        "S6": {
+            "enable": true,
+            "pos": {
+                "x": 0,
+                "y": 0
+            }
+        },
+        "poll_rate": 30,
+        "voltage_threshhold": 0.5
+    },
+    "Email": {
+        "enable": false,
+        "Recipients": []
+    },
+    "Display": {
+        "width": 1280,
+        "height": 720
+    }
+}
