@@ -1,8 +1,11 @@
-from types import MappingProxyType
+﻿from types import MappingProxyType
 import pygame
 import random
+from lib.location import Location
+from lib.weather import Weather
+from lib.config import Configuration
 
-from lib.util import Coords, Rect
+from lib.util import Coords, Rect, Text
 
 # Iris
 class Iris:
@@ -123,20 +126,82 @@ class Weather_Widget():
         }
     )
 
-    def __init__(self, surface, x, y):
+    def __init__(self, surface : pygame.Surface, x : int, y : int, config : Configuration):
+        self.update_event = pygame.event.custom_type()
+
+        self.config = config
+
         self.img_weatherIcons = []
         for i in range(1, 21):
             self.img_weatherIcons.append(pygame.image.load(f'assets/weather/{i:02d}.png'))
             
+        self.Loc = Location(config.apikeys.googleMaps)
+        self.Weather = Weather(config.apikeys.openWeather)
+        lat, lon, success = self.Loc.Get()
+        if success:
+            self.loc_valid = True
+            self.Weather.setLoc(lat, lon)
+        else:
+            self.loc_valid = False
+
         self.surface = surface
         self.x = x
         self.y = y
         self.img = pygame.Surface((266, 178))
         self.border = Rect(self.img, 0, 0, 266, 178, color=(100,100,100), border_width=2)
+        self.icon_pos = (3,40)
+        self.icon = None
+
+        self.city = Text(self.img, 20, 5, font=pygame.font.Font("assets/fonts/DejaVuSerifCondensed-Bold.ttf", 31), text="<Error>")
+        self.temp = Text(self.img, 131, 35, font=pygame.font.Font("assets/fonts/DejaVuSerifCondensed-Bold.ttf", 50), text="<Error>°ᶜ")
+        self.chill = Text(self.img, 131, 85, font=pygame.font.Font("assets/fonts/DejaVuSerifCondensed-Bold.ttf", 16), text="feels like: <Error>°ᶜ")
+        self.cond = Text(self.img, 131, 105, font=pygame.font.Font("assets/fonts/DejaVuSerifCondensed-Bold.ttf", 35), text="<Error>")
+        self.desc = Text(self.img, 131, 137, font=pygame.font.Font("assets/fonts/DejaVuSerifCondensed-Bold.ttf", 20), text="<Error>")
+        
 
     def update(self):
-        self.img.fill((0,0,0,0))
-        self.border.draw()
+        if self.loc_valid:
+            success = self.Weather.Current.update()
+            if success:
+                self.icon = self.img_weatherIcons[ type(self).icon_map[self.Weather.Current.id] ]
+                
+                if self.config.stream_mode:
+                    self.city.setText("<City Hidden>")
+                else:
+                    self.city.setText(self.Weather.Current.city)
+                self.temp.setText(str(int(self.Weather.Current.temp))+"°ᶜ")
+                self.chill.setText("feels like: " + str(int(self.Weather.Current.chill))+"°ᶜ")
+                self.cond.setText(self.Weather.Current.condition)
+                self.desc.setText(self.Weather.Current.description)
+
+            else:
+                self.icon = self.img_weatherIcons[5], self.icon
+
+                self.border.setColor((255, 0, 0))
+                self.city.setColor((255,0,0))
+
+                self.city.setText("<Error>")
+
+            self.img.fill((0,0,0,0))
+            self.border.draw()
+
+            self.img.blit(self.icon, self.icon_pos)
+            self.temp.draw()
+            self.chill.draw()
+            self.cond.draw()
+            self.desc.draw()
+            self.city.draw()
+
+        else:
+            lat, lon, success = self.Loc.Get()
+            if success:
+                self.loc_valid = True
+                self.Weather.setLoc(lat, lon)
+                self.update()
+            else:
+                self.loc_valid = False
+
+        pygame.time.set_timer(pygame.event.Event(self.update_event, msg="weather_update", callback=self.update), 300000)
 
     def draw(self):
         self.surface.blit(self.img, (self.x, self.y))

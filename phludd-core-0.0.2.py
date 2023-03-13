@@ -7,11 +7,18 @@ import lib.hardware as hardware
 import lib.user_interface as ui
 import lib.util as util
 
+def debug(config : Configuration):
+    config.stream_mode = True
+    config.fullscreen = False
+
 # load Settings and API Keys
 config = Configuration()
 
 #Create Screen
-screen = pygame.display.set_mode(config.PHLUDD.Display.resolution, pygame.FULLSCREEN)
+if config.fullscreen:
+    screen = pygame.display.set_mode(config.PHLUDD.Display.resolution, pygame.FULLSCREEN)
+else:
+    screen = pygame.display.set_mode(config.PHLUDD.Display.resolution)
 
 #Title and Icon
 pygame.display.set_caption("PHLUDD System")
@@ -30,7 +37,7 @@ bgImg = pygame.transform.scale(bgImg, config.PHLUDD.Display.resolution)
 main_ui_bg = ui.BackGround(screen, bgImg, (32,32,32))
 
 ## Weather Widget ##
-weather = ui.Weather_Widget(screen, 10, 532)
+weather = ui.Weather_Widget(screen, 10, 532, config)
 weather.update()
 
 spinner = util.GIF(screen, 832, 400, 'assets/807.gif')
@@ -82,7 +89,7 @@ while running:
             iris.idle_look()
 
         elif hasattr(event, "msg"):
-            if event.msg == 'gif_update':
+            if event.msg == 'gif_update' or event.msg == "weather_update":
                 event.callback()
 
         
@@ -101,5 +108,4 @@ while running:
     main_ui_bg.draw()
     weather.draw()
     spinner.draw()
-    cat.draw()
     pygame.display.update()

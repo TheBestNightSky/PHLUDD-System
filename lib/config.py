@@ -109,3 +109,7 @@ class Configuration:
 
         # display
         self.PHLUDD.Display.resolution = (self.PHLUDD.Display.width, self.PHLUDD.Display.height)
+
+        #debug
+        self.stream_mode = False
+        self.fullscreen = True
