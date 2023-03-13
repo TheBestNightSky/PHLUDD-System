@@ -1,15 +1,16 @@
 import math
 import pygame, sys
-pygame.init()
-
 from lib.config import *
 import lib.hardware as hardware
 import lib.user_interface as ui
 import lib.util as util
 
+pygame.init()
+
 def debug(config : Configuration):
     config.stream_mode = True
     config.fullscreen = False
+
 
 # load Settings and API Keys
 config = Configuration()

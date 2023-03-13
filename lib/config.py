@@ -103,7 +103,7 @@ class Configuration:
         # email
         if self.PHLUDD.Email.enable:
             recipients = ""
-            for i in settings.Email.Recipients:
+            for i in self.PHLUDD.Email.Recipients:
                 recipients = recipients + i + ", "
             self.PHLUDD.Email.recipient_string = recipients[:len(recipients)-2]
 
