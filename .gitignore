@@ -366,4 +366,4 @@ FodyWeavers.xsd
 credentials/*
 
 # Cred Exception
-credentials/.gitkeep
+!credentials/.gitkeep
