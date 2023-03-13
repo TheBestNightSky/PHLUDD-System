@@ -5,23 +5,28 @@ import pygame
 class Phludd:
     def __init__(self, surface, ui_bg, iris, config):
         # event stuff
+        self.phludd_idle_event = pygame.event.custom_type()
         self.phludd_alarm_event = pygame.event.custom_type()
         self.phludd_alarm_trigger_event = pygame.event.custom_type()
         self.phludd_lbat_trigger_event = pygame.event.custom_type()
         self.phludd_alarm_clear_event = pygame.event.custom_type()
         self.phludd_sensor_read_event = pygame.event.custom_type()
+        self.phludd_sensor_finish_event = pygame.event.custom_type()
 
         self.events = [
+            self.phludd_idle_event,
             self.phludd_alarm_event,
             self.phludd_alarm_trigger_event,
             self.phludd_lbat_trigger_event,
             self.phludd_alarm_clear_event,
-            self.phludd_sensor_read_event
+            self.phludd_sensor_read_event,
+            self.phludd_sensor_finish_event
         ]
 
             
         # local stuff
         self.state = 0
+        self.prev_state = 0
         self.alarm_state = False
         self.cycle = 0
         self.ui_bg = ui_bg
@@ -39,7 +44,19 @@ class Phludd:
         elif event.type == self.phludd_sensor_read_event:
             self.read_sensors()
 
+        elif event.type == self.phludd_sensor_finish_event:
+            if self.prev_state == 0:
+                self.state = 0
+                pygame.event.post(pygame.event.Event(self.phludd_idle_event))
+            elif self.prev_state == 2:
+                pygame.event.post(pygame.event.Event(self.phludd_lbat_trigger_event))
+
+        elif event.type == self.phludd_idle_event:
+            pygame.time.set_timer(self.phludd_sensor_read_event, self.poll_rate)
+
         elif event.type == self.phludd_alarm_trigger_event:
+            if self.state == 2:
+                self.alarm_silence()
             self.iris.looklimit.x, self.iris.looklimit.y = 6, 6
             self.iris.hold_time_range = [0,100]
             self.iris.path = []
@@ -61,6 +78,7 @@ class Phludd:
             self.iris.path = []
             self.iris.idle_look()
             self.ui_bg.setColor((32,32,32))
+            pygame.event.post(pygame.event.Event(self.phludd_idle_event))
 
     def init(self):
         pygame.time.set_timer(self.phludd_sensor_read_event, self.poll_rate)
@@ -90,6 +108,7 @@ class Phludd:
         e = pygame.event.post(pygame.event.Event(self.phludd_alarm_clear_event))
         self.cycle = 0
         self.state = 0
+        self.prev_state = 0
         self.alarm_state = False
 
     def alarm_test(self):
@@ -106,17 +125,22 @@ class Phludd:
     def alarm_norm(self):
         self.alarm_handle(1000, 1000)
 
+    def setState(self, val : int):
+        self.prev_state = self.state + 0
+        self.state = val
+
     def read_sensors(self):
-        if self.state == 0:
-            self.state = 1
-            pygame.time.set_timer(self.phludd_sensor_read_event, 10000)
+        if self.state == 0 or self.state == 2:
+            self.setState(1)
+            pygame.time.set_timer(self.phludd_sensor_read_event, 10000, 1)
+        
         elif self.state == 1:
             select = random.randint(0,100)
             if select <= 10:
                 e = pygame.event.post(pygame.event.Event(self.phludd_alarm_trigger_event))
             else:
-                self.state = 0
-                self.ui_bg.setColor((32, 32, 32))
                 pygame.time.set_timer(self.phludd_sensor_read_event, self.poll_rate)
+                pygame.event.post(pygame.event.Event(self.phludd_sensor_finish_event))
+
         else:
             pygame.time.set_timer(self.phludd_sensor_read_event, self.poll_rate)

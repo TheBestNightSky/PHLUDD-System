@@ -71,7 +71,7 @@ class Rect:
         self.fill = fill
         self._update()
 
-    def setColor(color):
+    def setColor(self, color):
         self.color = color
         self._update()
 

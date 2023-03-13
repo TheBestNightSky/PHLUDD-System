@@ -148,11 +148,11 @@ class Weather_Widget():
         self.x = x
         self.y = y
         self.img = pygame.Surface((266, 178))
-        self.border = Rect(self.img, 0, 0, 266, 178, color=(100,100,100), border_width=2)
+        self.border = Rect(self.img, 0, 0, 266, 178, color=(255,0,0), border_width=2)
         self.icon_pos = (3,40)
         self.icon = None
 
-        self.city = Text(self.img, 20, 5, font=pygame.font.Font("assets/fonts/DejaVuSerifCondensed-Bold.ttf", 31), text="<Error>")
+        self.city = Text(self.img, 20, 5, color=(255,0,0), font=pygame.font.Font("assets/fonts/DejaVuSerifCondensed-Bold.ttf", 31), text="<Error>")
         self.temp = Text(self.img, 131, 35, font=pygame.font.Font("assets/fonts/DejaVuSerifCondensed-Bold.ttf", 50), text="<Error>°ᶜ")
         self.chill = Text(self.img, 131, 85, font=pygame.font.Font("assets/fonts/DejaVuSerifCondensed-Bold.ttf", 16), text="feels like: <Error>°ᶜ")
         self.cond = Text(self.img, 131, 105, font=pygame.font.Font("assets/fonts/DejaVuSerifCondensed-Bold.ttf", 35), text="<Error>")
@@ -163,6 +163,8 @@ class Weather_Widget():
         if self.loc_valid:
             success = self.Weather.Current.update()
             if success:
+                self.border.setColor((100, 100, 100))
+                self.city.setColor((255,255,255))
                 self.icon = self.img_weatherIcons[ type(self).icon_map[self.Weather.Current.id] ]
                 
                 if self.config.stream_mode:
@@ -175,31 +177,34 @@ class Weather_Widget():
                 self.desc.setText(self.Weather.Current.description)
 
             else:
-                self.icon = self.img_weatherIcons[5], self.icon
+                self.icon = self.img_weatherIcons[5]
 
                 self.border.setColor((255, 0, 0))
                 self.city.setColor((255,0,0))
 
                 self.city.setText("<Error>")
 
-            self.img.fill((0,0,0,0))
-            self.border.draw()
-
-            self.img.blit(self.icon, self.icon_pos)
-            self.temp.draw()
-            self.chill.draw()
-            self.cond.draw()
-            self.desc.draw()
-            self.city.draw()
-
         else:
+            self.icon = self.img_weatherIcons[5]
             lat, lon, success = self.Loc.Get()
             if success:
                 self.loc_valid = True
                 self.Weather.setLoc(lat, lon)
                 self.update()
+                return
             else:
                 self.loc_valid = False
+
+        self.img.fill((0,0,0,0))
+
+        self.img.blit(self.icon, self.icon_pos)
+        self.temp.draw()
+        self.chill.draw()
+        self.cond.draw()
+        self.desc.draw()
+        self.city.draw()
+
+        self.border.draw()
 
         pygame.time.set_timer(pygame.event.Event(self.update_event, msg="weather_update", callback=self.update), 300000)
 

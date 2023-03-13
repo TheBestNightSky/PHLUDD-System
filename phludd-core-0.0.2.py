@@ -13,6 +13,7 @@ def debug(config : Configuration):
 
 # load Settings and API Keys
 config = Configuration()
+#debug(config)
 
 #Create Screen
 if config.fullscreen:
@@ -40,8 +41,9 @@ main_ui_bg = ui.BackGround(screen, bgImg, (32,32,32))
 weather = ui.Weather_Widget(screen, 10, 532, config)
 weather.update()
 
-spinner = util.GIF(screen, 832, 400, 'assets/807.gif')
-spinner.init()
+## Status Display ##
+status = util.Text(screen, 120,30, font=pygame.font.Font("assets/fonts/Rounded Elegance.ttf", 30), text="Status:    Idle")
+
 ###### END UI #######
 
 
@@ -83,6 +85,17 @@ while running:
         ## Phludd hardware events ##
         elif event.type in phludd.events:
             phludd.event_handle(event)
+            if event.type == phludd.phludd_sensor_read_event:
+                status.setText("Status:    Scanning...")
+            elif event.type == phludd.phludd_idle_event:
+                main_ui_bg.setColor((32, 32, 32))
+                status.setText("Status:    Idle")
+            elif event.type == phludd.phludd_alarm_trigger_event:
+                status.setText("Status:    !Flood Detected!")
+            elif event.type == phludd.phludd_lbat_trigger_event:
+                status.setText("Status:    Battery Low!")
+            
+
             
         ## UI Events ##
         elif event.type == iris.idle_look_event:
@@ -106,6 +119,6 @@ while running:
     main_ui_bg.clear()
     iris.draw()
     main_ui_bg.draw()
+    status.draw()
     weather.draw()
-    spinner.draw()
     pygame.display.update()
