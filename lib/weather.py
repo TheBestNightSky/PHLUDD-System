@@ -106,24 +106,4 @@ class _Forcast:
         return success
 
     
-if __name__ == '__main__':
-    loc = Location("AIzaSyDaWu_MKoAQ4T_Evky_EL8AO7Wk0YN9AqM")
-    lat, lon, success = loc.Get()
-
-    weather = Weather("2faf70007fae9ac4342f495511d3e8c_8")
-    if success:
-        weather.setLoc(lat, lon)
-        test = weather.Current.update()
-        if test:
-            ls = [
-                weather.Current.id,
-                weather.Current.condition,
-                weather.Current.description,
-                weather.Current.temp,
-                weather.Current.chill,
-                weather.Current.humid]
-
-            print(ls)
-        test = weather.Forcast.update()
-    
     
