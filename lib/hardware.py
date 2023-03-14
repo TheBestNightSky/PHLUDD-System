@@ -1,5 +1,6 @@
 import random
 import pygame
+import collections
 from lib.RPi import GPIO
 from lib.ADC import MCP
 
@@ -21,6 +22,7 @@ class Phludd:
         self.phludd_idle_event = pygame.event.custom_type()
         self.phludd_alarm_event = pygame.event.custom_type()
         self.phludd_alarm_trigger_event = pygame.event.custom_type()
+        self.phludd_bat_check_event = pygame.event.custom_type()
         self.phludd_lbat_trigger_event = pygame.event.custom_type()
         self.phludd_alarm_clear_event = pygame.event.custom_type()
         self.phludd_sensor_read_event = pygame.event.custom_type()
@@ -31,6 +33,7 @@ class Phludd:
             self.phludd_alarm_event,
             self.phludd_alarm_trigger_event,
             self.phludd_lbat_trigger_event,
+            self.phludd_bat_check_event,
             self.phludd_alarm_clear_event,
             self.phludd_sensor_read_event,
             self.phludd_sensor_finish_event
@@ -51,6 +54,8 @@ class Phludd:
         self.iris = iris
         self.config = config
         self.poll_rate = config.PHLUDD.Sensors.poll_rate * 1000
+
+        self.bat_data = collections.deque(maxlen=200)
 
 
     def event_handle(self, event):
@@ -84,6 +89,13 @@ class Phludd:
             self.state = self.STATE_ALARM
             self.alarm_norm()
 
+        elif event.type == self.phludd_bat_check_event:
+            self.bat_data.append((MCP.read_voltage(7)/(5.9/(10+5.9)))/0.43)
+            if len(self.bat_data) == 200 and sum(self.bat_data)/len(self.bat_data) <= 7:
+                pygame.event.post(pygame.event.Event(self.phludd_lbat_trigger_event))
+            else:
+                pygame.time.set_timer(self.phludd_bat_check_event, 1000)
+
         elif event.type == self.phludd_lbat_trigger_event:
             if self.state == self.STATE_IDLE:
                 self.iris.looklimit.x, self.iris.looklimit.y = 6, 6
@@ -103,6 +115,7 @@ class Phludd:
 
     def init(self):
         pygame.time.set_timer(self.phludd_sensor_read_event, self.poll_rate)
+        pygame.time.set_timer(self.phludd_bat_check_event, 1000)
 
         
     def alarm_handle(self, high_interval, low_interval, cycles=0):
