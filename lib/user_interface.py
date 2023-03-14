@@ -1,11 +1,15 @@
 ﻿from types import MappingProxyType
+from urllib import request
 import pygame
 import random
+import requests.exceptions
+
 from lib.location import Location
 from lib.weather import Weather
 from lib.config import Configuration
 
 from lib.util import Coords, Rect, Text
+
 
 # Iris
 class Iris:
@@ -205,8 +209,13 @@ class Weather_Widget():
         self.city.draw()
 
         self.border.draw()
-
+                
         pygame.time.set_timer(pygame.event.Event(self.update_event, msg="weather_update", callback=self.update), 300000)
+
+        if not success:
+            e = self.Loc.getLastError()
+            if type(e) == requests.exceptions.ConnectionError:
+                pygame.time.set_timer(pygame.event.Event(self.update_event, msg="weather_update", callback=self.update), 5000)
 
     def draw(self):
         self.surface.blit(self.img, (self.x, self.y))

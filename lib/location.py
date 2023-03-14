@@ -8,6 +8,10 @@ class Location:
     def __init__(self, api_key):
         self.maps_key = api_key
         self._lastException = None
+
+
+    def getLastError(self):
+        return self._lastException
         
     # windows netsh method
     def netsh(self):
