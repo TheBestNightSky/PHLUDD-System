@@ -1,11 +1,14 @@
 import math
 import pygame, sys
+
+pygame.init()
+
 from lib.config import *
 import lib.hardware as hardware
 import lib.user_interface as ui
 import lib.util as util
 
-pygame.init()
+
 
 def debug(config : Configuration):
     config.stream_mode = True
@@ -14,7 +17,7 @@ def debug(config : Configuration):
 
 # load Settings and API Keys
 config = Configuration()
-#debug(config)
+debug(config)
 
 #Create Screen
 if config.fullscreen:
@@ -65,12 +68,15 @@ while running:
         ## System Events ##
         if event.type == pygame.QUIT:
             running = False
+            pygame.quit()
+            hardware.GPIO.cleanup()
 
         ## Keyboard Events ##
         elif event.type == pygame.KEYDOWN:
             if event.key == pygame.K_F4 and bool(event.mod & pygame.KMOD_ALT):
                 pygame.quit()
-                sys.exit()
+                hardware.GPIO.cleanup()
+                running = False
 
             elif event.key == pygame.K_F12:
                 e = pygame.event.post(pygame.event.Event(phludd.phludd_alarm_trigger_event))
@@ -107,12 +113,14 @@ while running:
                 event.callback()
 
         
+    if not running:
+        break
 
     ## BackGround Fill Fade for phludd hardware sensing/low bat states
-    if phludd.state == 1:
+    if phludd.state == phludd.STATE_SENSING:
         val = ((math.cos(run_timer.Peak()*4)+1) / 2) * (255 - 32) + 32
         main_ui_bg.setColor((32, 32, val))
-    elif phludd.state == 2:
+    elif phludd.state == phludd.STATE_LOW_BAT:
         val = ((math.cos(run_timer.Peak()*4)+1) / 2) * (255 - 32) + 32
         main_ui_bg.setColor((val, val, 32))
         

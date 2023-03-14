@@ -50,7 +50,7 @@
             }
         },
         "poll_rate": 30,
-        "voltage_threshhold": 0.5
+        "voltage_threshold": 0.5
     },
     "Email": {
         "enable": false,

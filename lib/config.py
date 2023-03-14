@@ -61,7 +61,7 @@ class Configuration:
                     }
                 },
             "poll_rate": 600,
-            "voltage_threshhold": 0.5
+            "voltage_threshold": 0.5
             },
         "Email" : {
             "enable": False,
