@@ -91,10 +91,10 @@ class Phludd:
 
         elif event.type == self.phludd_bat_check_event:
             self.bat_data.append((MCP.read_voltage(7)/(5.9/(10+5.9)))/0.43)
-            if len(self.bat_data) == 200 and sum(self.bat_data)/len(self.bat_data) <= 7:
+            if self.state != self.STATE_LOW_BAT and len(self.bat_data) == 200 and sum(self.bat_data)/len(self.bat_data) <= 7:
                 pygame.event.post(pygame.event.Event(self.phludd_lbat_trigger_event))
             else:
-                pygame.time.set_timer(self.phludd_bat_check_event, 1000)
+                pygame.time.set_timer(self.phludd_bat_check_event, 500)
 
         elif event.type == self.phludd_lbat_trigger_event:
             if self.state == self.STATE_IDLE:
@@ -115,7 +115,7 @@ class Phludd:
 
     def init(self):
         pygame.time.set_timer(self.phludd_sensor_read_event, self.poll_rate)
-        pygame.time.set_timer(self.phludd_bat_check_event, 1000)
+        pygame.time.set_timer(self.phludd_bat_check_event, 500)
 
         
     def alarm_handle(self, high_interval, low_interval, cycles=0):
