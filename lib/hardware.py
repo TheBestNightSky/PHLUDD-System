@@ -94,7 +94,7 @@ class Phludd:
             if self.state != self.STATE_LOW_BAT and len(self.bat_data) == 200 and sum(self.bat_data)/len(self.bat_data) <= 7:
                 pygame.event.post(pygame.event.Event(self.phludd_lbat_trigger_event))
             else:
-                pygame.time.set_timer(self.phludd_bat_check_event, 500)
+                pygame.time.set_timer(self.phludd_bat_check_event, 500, 1)
 
         elif event.type == self.phludd_lbat_trigger_event:
             if self.state == self.STATE_IDLE:
