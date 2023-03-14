@@ -144,7 +144,7 @@ class Phludd:
         if self.state == self.STATE_LOW_BAT or self.state == self.STATE_ALARM:
             pygame.time.set_timer(self.phludd_alarm_event, 0)
             pygame.time.set_timer(self.phludd_lbat_trigger_event, 0)
-            pygame.time.set_timer(self.phludd_bat_check_event, 500, 1)
+            self.bat_data.clear()
             e = pygame.event.post(pygame.event.Event(self.phludd_alarm_clear_event))
             self.cycle = 0
             self.state = self.STATE_IDLE
