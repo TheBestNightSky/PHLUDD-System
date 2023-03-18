@@ -104,7 +104,7 @@ class Phludd:
             self.alarm_lbat()
 
         elif event.type == self.phludd_alarm_clear_event:
-            self.iris.looklimit.x, self.iris.looklimit.y = 200, 150
+            self.iris.looklimit.x, self.iris.looklimit.y = 133, 100
             self.iris.hold_time_range = [3000,5000]
             self.iris.path = []
             self.iris.idle_look()
@@ -189,15 +189,17 @@ class Phludd:
             #    pygame.event.post(pygame.event.Event(self.phludd_sensor_finish_event))
             sens_map = [self.config.PHLUDD.Sensors.S0, self.config.PHLUDD.Sensors.S1, self.config.PHLUDD.Sensors.S2, self.config.PHLUDD.Sensors.S3, self.config.PHLUDD.Sensors.S4, self.config.PHLUDD.Sensors.S5, self.config.PHLUDD.Sensors.S6]
             trig = []
+            ids = []
             for i in range(0, 7):
                 voltage = MCP.read_voltage(i)
                 if sens_map[i].enable and voltage >= self.config.PHLUDD.Sensors.voltage_threshold:
                     trig.append(True)
+                    ids.append(i)
                 else:
                     trig.append(False)
 
             if any(trig):
-                e = pygame.event.post(pygame.event.Event(self.phludd_alarm_trigger_event))
+                e = pygame.event.post(pygame.event.Event(self.phludd_alarm_trigger_event, sensor_ids=ids))
             else:
                 pygame.time.set_timer(self.phludd_sensor_read_event, self.poll_rate)
                 pygame.event.post(pygame.event.Event(self.phludd_sensor_finish_event))

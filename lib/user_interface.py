@@ -8,8 +8,52 @@ from lib.location import Location
 from lib.weather import Weather
 from lib.config import Configuration
 
-from lib.util import Coords, Rect, Text
+from lib.util import Coords, Rect, Text, GIF
 
+# Map Sensor Icon
+class Sensor_Icon:
+    def __init__(self, surface, x, y, image, lable, config):
+        self.surface = surface
+        self.x = x
+        self.y = y
+        self.img = image
+        self.lable = Text(self.surface, x+32, y, font=pygame.font.Font("assets/fonts/DejaVuSerifCondensed-Bold.ttf", 18), text=lable)
+        self.triggered_animation = GIF(self.surface, self.x-16, self.y-16, 'assets/square-spinner.gif')
+        self.highlight = Rect(self.surface, x, y, 32, 32, color=(0,10,255), border_width=2)
+        self.config = config
+        self.move = False
+        self.triggered = False
+
+    def draw(self):
+        if self.move:
+            self.highlight.draw()
+        elif self.triggered:
+            self.triggered_animation.draw()
+        self.surface.blit(self.img, (self.x, self.y))
+        self.lable.draw()
+
+    def trigger(self):
+        self.triggered = True
+        self.triggered_animation.init()
+
+    def reset(self):
+        if self.triggered:
+            self.triggered = False
+            self.triggered_animation.halt()
+
+    def clicked(self, pos):
+        x, y = pos
+        if self.x < x < self.x + self.img.get_width() and self.y < y < self.y + self.img.get_height():
+            return True
+        return False
+
+    def setPos(self, pos):
+        x, y = pos
+        self.x, self.y = pos
+        self.triggered_animation.x, self.triggered_animation.y = x-16, y-16
+        self.highlight.x, self.highlight.y = pos
+        self.lable.x, self.lable.y = x+32, y
+        self.config.pos.x, self.config.pos.y = pos
 
 # Iris
 class Iris:
@@ -21,14 +65,14 @@ class Iris:
         self.X = 0
         self.Y = 0
         self.surface = surface
-        self.looklimit = Coords(200, 150)
+        self.looklimit = Coords(133, 100)
         self.hold_time_range = [3000,5000]
         self.path = []
         
     def draw(self):
         self.surface.blit(self.Img, (self.X, self.Y))
 
-    def calc_idle_look(self, speed, limitX, limitY):
+    def calc_idle_look(self, speed):
         tx, ty = random.randint(-self.looklimit.x, self.looklimit.x), random.randint(-self.looklimit.y, self.looklimit.y)
         x, y = self.X, self.Y
 
@@ -41,7 +85,7 @@ class Iris:
 
     def idle_look(self):
         if not self.path:
-            self.calc_idle_look(random.randint(2,5), 200, 150)
+            self.calc_idle_look(random.randint(2,5))
             pygame.time.set_timer(self.idle_look_event, random.randint(self.hold_time_range[0]+1, self.hold_time_range[1]), 1)
         else:
             self.X, self.Y = self.path.pop(0)
@@ -64,7 +108,6 @@ class BackGround:
         
     def draw(self):
         self.surface.blit(self.img, (0,0))
-
 
 
 ## Weather Widget ##
@@ -151,8 +194,8 @@ class Weather_Widget():
         self.surface = surface
         self.x = x
         self.y = y
-        self.img = pygame.Surface((266, 178))
-        self.border = Rect(self.img, 0, 0, 266, 178, color=(255,0,0), border_width=2)
+        self.img = pygame.Surface((300, 178))
+        self.border = Rect(self.img, 0, 0, 300, 178, color=(255,0,0), border_width=2)
         self.icon_pos = (3,40)
         self.icon = None
 

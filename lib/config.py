@@ -1,3 +1,4 @@
+from distutils.command.config import config
 import json
 import os
 from lib.util import Dict2Class
@@ -22,42 +23,42 @@ class Configuration:
                 "enable" : True,
                 "pos" : {
                     "x" : 0,
-                    "y" : 0
+                    "y" : 32
                     }
                 },
             "S2": {
                 "enable" : True,
                 "pos" : {
                     "x" : 0,
-                    "y" : 0
+                    "y" : 64
                     }
                 },
             "S3": {
                 "enable" : True,
                 "pos" : {
                     "x" : 0,
-                    "y" : 0
+                    "y" : 96
                     }
                 },
             "S4": {
                 "enable" : True,
                 "pos" : {
                     "x" : 0,
-                    "y" : 0
+                    "y" : 128
                     }
                 },
             "S5": {
                 "enable" : True,
                 "pos" : {
                     "x" : 0,
-                    "y" : 0
+                    "y" : 160
                     }
                 },
             "S6": {
                 "enable" : True,
                 "pos" : {
                     "x" : 0,
-                    "y" : 0
+                    "y" : 192
                     }
                 },
             "poll_rate": 600,
@@ -113,3 +114,16 @@ class Configuration:
         #debug
         self.stream_mode = False
         self.fullscreen = True
+
+    def save(self):
+        config_dict = self.PHLUDD.ToDict()
+        if "resolution" in config_dict["Display"]:
+            del config_dict["Display"]["resolution"]
+        if "recipient_string" in config_dict["Email"]:
+            del config_dict["Email"]["recipient_string"]
+
+
+        json_object = json.dumps(config_dict, indent=4)
+        with open('config.json', 'w') as outfile:
+            outfile.write(json_object)
+            outfile.close()

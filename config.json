@@ -3,50 +3,50 @@
         "S0": {
             "enable": true,
             "pos": {
-                "x": 0,
-                "y": 0
+                "x": 229,
+                "y": 374
             }
         },
         "S1": {
             "enable": true,
             "pos": {
-                "x": 0,
-                "y": 0
+                "x": 591,
+                "y": 25
             }
         },
         "S2": {
-            "enable": true,
+            "enable": false,
             "pos": {
                 "x": 0,
-                "y": 0
+                "y": 64
             }
         },
         "S3": {
-            "enable": true,
+            "enable": false,
             "pos": {
                 "x": 0,
-                "y": 0
+                "y": 96
             }
         },
         "S4": {
-            "enable": true,
+            "enable": false,
             "pos": {
                 "x": 0,
-                "y": 0
+                "y": 128
             }
         },
         "S5": {
-            "enable": true,
+            "enable": false,
             "pos": {
                 "x": 0,
-                "y": 0
+                "y": 160
             }
         },
         "S6": {
-            "enable": true,
+            "enable": false,
             "pos": {
                 "x": 0,
-                "y": 0
+                "y": 192
             }
         },
         "poll_rate": 30,

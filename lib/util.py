@@ -13,6 +13,15 @@ class Dict2Class(object):
             else:
                 atr = dict_obj[key]
             setattr(self, key, atr)
+
+    def ToDict(self):
+        node_dict = vars(self).copy()
+        
+        for key in node_dict:
+            if type(node_dict[key]) == type(self):
+                node_dict[key] = node_dict[key].ToDict()
+
+        return node_dict
             
 class Coords:
     def __init__(self, x, y, z=0):
@@ -84,10 +93,30 @@ class Rect:
     def draw(self):
         self.surface.blit(self.img, (self.x, self.y))
 
+
+class Button:
+    def __init__(self, surface, x, y, image):
+        self.surface = surface
+        self.x = x
+        self.y = y
+        self.img = image
+
+    def draw(self):
+        self.surface.blit(self.img, (self.x, self.y))
+
+    def clicked(self, pos):
+        x, y = pos
+        if self.x < x < self.x + self.img.get_width() and self.y < y < self.y + self.img.get_height():
+            return True
+        return False
+
+
+
 class GIF:
     recycle = {}
     def __init__(self, surface, x, y, filename):
         self.surface = surface
+        self.update_event = None
         self.x = x
         self.y = y
 
@@ -133,7 +162,7 @@ class GIF:
         pygame.time.set_timer(pygame.event.Event(self.update_event, msg="gif_update", callback=self.next_frame), self.delay)
 
     def halt(self):
-        pygame.time.set_timer(pygame.event.Event(self.update_event, msg="gif_update", callback=self.play), 0)
+        pygame.time.set_timer(pygame.event.Event(self.update_event, msg="gif_update", callback=self.next_frame), 0)
         self.release_id()
 
     def next_frame(self):
