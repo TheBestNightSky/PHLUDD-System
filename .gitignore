@@ -367,3 +367,8 @@ credentials/*
 
 # Cred Exception
 !credentials/.gitkeep
+
+#Environment
+env/*
+/*.pyproj
+/PHLUDD System.pyproj
