@@ -178,6 +178,10 @@ def map():
                 elif event.type == phludd.phludd_lbat_trigger_event:
                     status.setText("Status:    Battery Low!")
 
+            ## API events ##
+            elif event.type == api_retry:
+                event.callback()
+
             elif hasattr(event, "msg"):
                 if event.msg == 'gif_update' or event.msg == "weather_update":
                     event.callback()
