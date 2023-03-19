@@ -20,6 +20,24 @@ def debug(config : Configuration):
 config = Configuration()
 debug(config)
 
+## Gmail ##
+api_retry = pygame.event.custom_type()
+SMTP = None
+def gmail_setup():
+    global SMTP
+    if not isinstance(SMTP, lib.gmail_handle.Gmail):
+        SMTP = lib.gmail_handle.Gmail()
+    if not SMTP.authorized:
+        SMTP.authorize()
+    if SMTP.service == None:
+        SMTP.build_service()
+
+    if not SMTP.isReady():
+        print("Gmail Setup did not complete successfuly, trying again in 5min")
+        pygame.time.set_timer(pygame.event.Event(api_retry, callback=gmail_setup), 300000)
+
+gmail_setup()
+
 #Create Screen
 if config.fullscreen:
     screen = pygame.display.set_mode(config.PHLUDD.Display.resolution, pygame.FULLSCREEN)
@@ -223,8 +241,14 @@ def main():
                     main_ui_bg.setColor((32, 32, 32))
                     status.setText("Status:    Idle")
                 elif event.type == phludd.phludd_alarm_trigger_event:
+                    sensor_string = "        "
                     for sensor in event.sensor_ids:
                         sensor_icons[sensor].trigger()
+                        sensor_string = sensor_string + "id: " + str(sensor) + " | lable: " + sensor_icons[sensor].lable.text + ",\n        "
+                    sensor_string = sensor_string[:-10]
+                    if config.PHLUDD.Email.enable and SMTP.isReady():
+                        msg = f"PHLUDD System automated alert!\n\nWARNING!:\n        Water level rising above acceptable boundary!\n\nAlarm triggered by sensor(s):\n{sensor_string}"
+                        SMTP.send_message(msg, config.PHLUDD.Email.recipient_string)
 
                     status.setText("Status:    !Flood Detected!")
                 elif event.type == phludd.phludd_lbat_trigger_event:
@@ -239,6 +263,10 @@ def main():
             elif hasattr(event, "msg"):
                 if event.msg == 'gif_update' or event.msg == "weather_update":
                     event.callback()
+
+            ## API events ##
+            elif event.type == api_retry:
+                event.callback()
 
         
         if not running:

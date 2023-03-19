@@ -1,5 +1,4 @@
 ﻿from types import MappingProxyType
-from urllib import request
 import pygame
 import random
 import requests.exceptions
