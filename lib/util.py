@@ -1,3 +1,4 @@
+from re import L
 import pygame
 import time
 from PIL import Image
@@ -111,36 +112,94 @@ class Button:
         return False
 
 
+class SliderToggle(Button):
+    def __init__(self, surface, x, y, true_frame, file, start_state=False, text="<Text>"):
+        self.surface = surface
+        self.x = x
+        self.y = y
+        self.true_frame = true_frame
+        self.lable = Text(self.surface, self.x, self.y, text=text)
+        self.gif = GIF(self.surface, 0, 0, file)
+        self.gif.x, self.gif.y = self.x + self.lable.img.get_width(), self.y - (self.gif.Img.get_height() // 2.5)
+        self.state = start_state
+        if start_state:
+            self.gif.set_frame(self.true_frame)
+        
+
+    def Toggle(self):
+        if self.gif.update_event is None:
+            self.state = not self.state
+            self.gif.init()
+            self.gif.next_frame()
+
+    def draw(self):
+        self.lable.draw()
+        self.gif.draw()
+        if self.gif.idx == self.true_frame or self.gif.idx == 0 and self.gif.update_event is not None:
+            self.gif.halt()
+
+    def clicked(self, pos):
+        x, y = pos
+        if self.gif.x < x < self.gif.x + self.gif.Img.get_width() and self.lable.y < y < self.lable.y + self.lable.img.get_height():
+            return True
+        return False
+
+
 
 class GIF:
     recycle = {}
+    cache = {}
+
     def __init__(self, surface, x, y, filename):
         self.surface = surface
         self.update_event = None
         self.x = x
         self.y = y
+        self.filename = filename
+        
+        if self.filename not in GIF.cache:
+            self.load(self.filename)
 
+        self.Img, self.delay = GIF.cache[self.filename][0]
+        self.idx = 0
+
+    def load(self, filename):
+        ## Hacky BS to get information from gif file that PIL dosnt read >:C ##
+        frame_data = []
+        with open(filename, "rb") as file:
+            if file.read(3).decode('ansi') != "GIF":
+                raise Exception("File is not a GIF!")
+
+            while (byte := file.read(1)):
+                if ord(byte) == 0x21: #If byte is Extension Introducer
+                    if ord(file.read(1)) == 0xf9: #And next byte marks block as Graphic Control Label
+                        if ord(file.read(1)) == 0x04: #And block size is 4
+                            packed = ord(file.read(1)) #get packed fields (Reserved: 3bits, Disposal Method: 3bits, User Input Flag: 1bit, Transparent Color Flag: 1bit)
+                            replace = not bool(packed & 0b00000100) #Mask least significant bit of Disposal Method as no one uses methods other than 1 and 2 (replace or combine)
+                            transparent = bool(packed & 0b00000001) #Unused for now but may be usefull to know
+                            frame_data.append({"is_replace": replace, "is_transparent": transparent, "delay": file.read(2), "transparency_index" : ord(file.read(1))})
+            file.close()
+        ## End of stuff you shouldnt even try to read
+
+        print(len(frame_data))
         im = Image.open(filename)
         seq = []
         try:
             while 1:
-                seq.append(im.copy().convert('RGBA'))
+                seq.append(im.copy().convert("RGBA"))
                 im.seek(len(seq))
         except EOFError:
             pass
-        try:
-            self.delay = im.info['duration']
-        except KeyError:
-            self.delay = 100
 
-
-        self.frames = []
-
+        GIF.cache[filename] = []
+        buffer = pygame.Surface(seq[0].size, pygame.SRCALPHA)
         for image in seq:
-            self.frames.append(pygame.image.fromstring(image.tobytes(), image.size, image.mode))
+            dispose = frame_data[seq.index(image)]["is_replace"]
+            if dispose:
+                buffer.fill((0,0,0,0))
+            buffer.blit(pygame.image.fromstring(image.tobytes(), image.size, image.mode), (0,0))
+            GIF.cache[filename].append((buffer.copy(), ord(frame_data[seq.index(image)]["delay"][:1]) * 10))
 
-        self.Img = self.frames[0]
-        self.idx = 0
 
     def reserve_id(self):
         found = False
@@ -156,21 +215,27 @@ class GIF:
 
     def release_id(self):
         type(self).recycle[self.update_event] = False
+        self.update_event = None
         
     def init(self):
         self.reserve_id()
-        pygame.time.set_timer(pygame.event.Event(self.update_event, msg="gif_update", callback=self.next_frame), self.delay)
+        pygame.time.set_timer(pygame.event.Event(self.update_event, msg="gif_update", callback=self.next_frame), GIF.cache[self.filename][self.idx][1])
 
     def halt(self):
-        pygame.time.set_timer(pygame.event.Event(self.update_event, msg="gif_update", callback=self.next_frame), 0)
-        self.release_id()
+        if self.update_event is not None:
+            pygame.time.set_timer(pygame.event.Event(self.update_event, msg="gif_update", callback=self.next_frame), 0)
+            self.release_id()
+
+    def set_frame(self, index):
+        self.idx = index
+        self.Img = GIF.cache[self.filename][self.idx][0]
 
     def next_frame(self):
-        self.Img = self.frames[self.idx]
+        self.Img, delay = GIF.cache[self.filename][self.idx]
         self.idx += 1
-        if self.idx == len(self.frames):
+        if self.idx == len(GIF.cache[self.filename]):
             self.idx = 0
-        pygame.time.set_timer(pygame.event.Event(self.update_event, msg="gif_update", callback=self.next_frame), self.delay)
+        pygame.time.set_timer(pygame.event.Event(self.update_event, msg="gif_update", callback=self.next_frame), delay)
 
     def draw(self):
         self.surface.blit(self.Img, (self.x, self.y))

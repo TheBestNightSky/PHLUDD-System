@@ -72,6 +72,15 @@ status = util.Text(screen, 120,30, font=pygame.font.Font("assets/fonts/Rounded E
 settings_icon = pygame.image.load('assets/settings_icon.png')
 SettingsButton = util.Button(screen, 1120, 10, settings_icon)
 
+## Toggle Buttons ##
+Sensor0_toggle = util.SliderToggle(screen, 100,100, 46, 'assets/toggle-button.gif', start_state=config.PHLUDD.Sensors.S0.enable, text="Sensor 0: ")
+Sensor1_toggle = util.SliderToggle(screen, 100,150, 46, 'assets/toggle-button.gif', start_state=config.PHLUDD.Sensors.S1.enable, text="Sensor 1: ")
+Sensor2_toggle = util.SliderToggle(screen, 100,200, 46, 'assets/toggle-button.gif', start_state=config.PHLUDD.Sensors.S2.enable, text="Sensor 2: ")
+Sensor3_toggle = util.SliderToggle(screen, 100,250, 46, 'assets/toggle-button.gif', start_state=config.PHLUDD.Sensors.S3.enable, text="Sensor 3: ")
+Sensor4_toggle = util.SliderToggle(screen, 100,300, 46, 'assets/toggle-button.gif', start_state=config.PHLUDD.Sensors.S4.enable, text="Sensor 4: ")
+Sensor5_toggle = util.SliderToggle(screen, 100,350, 46, 'assets/toggle-button.gif', start_state=config.PHLUDD.Sensors.S5.enable, text="Sensor 5: ")
+Sensor6_toggle = util.SliderToggle(screen, 100,400, 46, 'assets/toggle-button.gif', start_state=config.PHLUDD.Sensors.S6.enable, text="Sensor 6: ")
+
 ## Map Icon ##
 map_icon = pygame.image.load('assets/map_icon.png')
 MapButton = util.Button(screen, 1120, 170, map_icon)
@@ -87,6 +96,7 @@ sensor_icon = pygame.image.load('assets/target.png')
 sensor_icons = []
 for sensor in sensor_array:
     if sensor.enable:
+        print("====")
         sensor_icons.append(ui.Sensor_Icon(screen, sensor.pos.x, sensor.pos.y, sensor_icon, f"Sensor {sensor_array.index(sensor)}", sensor_array[sensor_array.index(sensor)]))
 
 ## Map ##
@@ -198,6 +208,79 @@ def map():
         pygame.display.update()
 
 
+def settings():
+    while running:
+        # Event Processing
+        for event in pygame.event.get():
+            ## System Events ##
+            if event.type == pygame.QUIT:
+                ExitCleanup()
+                return
+
+            ## Keyboard Events ##
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_F4 and bool(event.mod & pygame.KMOD_ALT):
+                    ExitCleanup()
+                    return
+
+            ## Mouse / Touch Events ##
+            elif event.type == pygame.MOUSEBUTTONUP:
+                if ExitButton.clicked(event.pos):
+                    iris.idle_look()
+                    return
+                elif Sensor0_toggle.clicked(event.pos):
+                    Sensor0_toggle.Toggle()
+                elif Sensor1_toggle.clicked(event.pos):
+                    Sensor1_toggle.Toggle()
+                elif Sensor2_toggle.clicked(event.pos):
+                    Sensor2_toggle.Toggle()
+                elif Sensor3_toggle.clicked(event.pos):
+                    Sensor3_toggle.Toggle()
+                elif Sensor4_toggle.clicked(event.pos):
+                    Sensor4_toggle.Toggle()
+                elif Sensor5_toggle.clicked(event.pos): 
+                    Sensor5_toggle.Toggle()
+                elif Sensor6_toggle.clicked(event.pos):
+                    Sensor6_toggle.Toggle()
+
+            ## Phludd hardware events ##
+            elif event.type in phludd.events:
+                phludd.event_handle(event)
+                if event.type == phludd.phludd_sensor_read_event:
+                    status.setText("Status:    Scanning...")
+                elif event.type == phludd.phludd_alarm_clear_event:
+                    for sensor in sensor_icons:
+                        sensor.reset()
+                elif event.type == phludd.phludd_idle_event:
+                    status.setText("Status:    Idle")
+                elif event.type == phludd.phludd_alarm_trigger_event:
+                    for sensor in event.sensor_ids:
+                        sensor_icons[sensor].trigger()
+
+                    status.setText("Status:    !Flood Detected!")
+                elif event.type == phludd.phludd_lbat_trigger_event:
+                    status.setText("Status:    Battery Low!")
+
+            ## API events ##
+            elif event.type == api_retry:
+                event.callback()
+
+            elif hasattr(event, "msg"):
+                if event.msg == 'gif_update' or event.msg == "weather_update":
+                    event.callback()
+
+        screen.fill((0,0,0))
+        Sensor0_toggle.draw()
+        Sensor1_toggle.draw()
+        Sensor2_toggle.draw()
+        Sensor3_toggle.draw()
+        Sensor4_toggle.draw()
+        Sensor5_toggle.draw()
+        Sensor6_toggle.draw()
+        ExitButton.draw()
+        pygame.display.update()
+
+
 def main():
     while running:
 
@@ -232,7 +315,7 @@ def main():
                 if MapButton.clicked(event.pos):
                     map()
                 elif SettingsButton.clicked(event.pos):
-                    pass
+                    settings()
 
             ## Phludd hardware events ##
             elif event.type in phludd.events:
