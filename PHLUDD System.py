@@ -96,7 +96,6 @@ sensor_icon = pygame.image.load('assets/target.png')
 sensor_icons = []
 for sensor in sensor_array:
     if sensor.enable:
-        print("====")
         sensor_icons.append(ui.Sensor_Icon(screen, sensor.pos.x, sensor.pos.y, sensor_icon, f"Sensor {sensor_array.index(sensor)}", sensor_array[sensor_array.index(sensor)]))
 
 ## Map ##

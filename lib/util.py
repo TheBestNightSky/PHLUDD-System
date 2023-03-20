@@ -181,7 +181,6 @@ class GIF:
             file.close()
         ## End of stuff you shouldnt even try to read
 
-        print(len(frame_data))
         im = Image.open(filename)
         seq = []
         try:
