@@ -1,6 +1,7 @@
 import math
 import pygame, sys
 import time
+import threading
 
 pygame.init()
 
@@ -21,24 +22,6 @@ def debug(config : Configuration):
 config = Configuration()
 debug(config)
 
-## Gmail ##
-api_retry = pygame.event.custom_type()
-SMTP = None
-def gmail_setup():
-    global SMTP
-    if not isinstance(SMTP, lib.gmail_handle.Gmail):
-        SMTP = lib.gmail_handle.Gmail()
-    if not SMTP.authorized:
-        SMTP.authorize()
-    if SMTP.service == None:
-        SMTP.build_service()
-
-    if not SMTP.isReady():
-        print("Gmail Setup did not complete successfuly, trying again in 5min")
-        pygame.time.set_timer(pygame.event.Event(api_retry, callback=gmail_setup), 300000)
-
-gmail_setup()
-
 #Create Screen
 if config.fullscreen:
     screen = pygame.display.set_mode(config.PHLUDD.Display.resolution, pygame.FULLSCREEN)
@@ -50,68 +33,113 @@ pygame.display.set_caption("PHLUDD System")
 icon = pygame.image.load('assets/eye.png')
 pygame.display.set_icon(icon)
 
+#Loading Screen Assests
+loading_bg = pygame.image.load('assets/phludd.png')
+loading_bg = pygame.transform.scale(loading_bg, config.PHLUDD.Display.resolution)
 
-###### UI ######
-# Iris
-iris = ui.Iris(screen, config)
-iris.idle_look()
+spinner = util.GIF(screen, 555, 540, "assets/807.gif")
+spinner.scale(170,170)
 
-# BackGround
-bgImg = pygame.image.load('assets/UI-Main.png')
-bgImg = pygame.transform.scale(bgImg, config.PHLUDD.Display.resolution)
-main_ui_bg = ui.BackGround(screen, bgImg, (32,32,32))
+running = False
 
-## Weather Widget ##
-weather = ui.Weather_Widget(screen, 10, 532, config)
-weather.update()
+def gmail_setup():
+        global SMTP
+        if not isinstance(SMTP, lib.gmail_handle.Gmail):
+            SMTP = lib.gmail_handle.Gmail()
+        if not SMTP.authorized:
+            SMTP.authorize()
+        if SMTP.service == None:
+            SMTP.build_service()
 
-## Status Display ##
-status = util.Text(screen, 120,30, font=pygame.font.Font("assets/fonts/Rounded Elegance.ttf", 30), text="Status:    Idle")
-
-## Setings Icon ##
-settings_icon = pygame.image.load('assets/settings_icon.png')
-SettingsButton = util.Button(screen, 1120, 10, settings_icon)
-
-## Toggle Buttons ##
-Sensor0_toggle = util.SliderToggle(screen, 100,100, 46, 'assets/toggle-button.gif', start_state=config.PHLUDD.Sensors.S0.enable, text="Sensor 0: ")
-Sensor1_toggle = util.SliderToggle(screen, 100,150, 46, 'assets/toggle-button.gif', start_state=config.PHLUDD.Sensors.S1.enable, text="Sensor 1: ")
-Sensor2_toggle = util.SliderToggle(screen, 100,200, 46, 'assets/toggle-button.gif', start_state=config.PHLUDD.Sensors.S2.enable, text="Sensor 2: ")
-Sensor3_toggle = util.SliderToggle(screen, 100,250, 46, 'assets/toggle-button.gif', start_state=config.PHLUDD.Sensors.S3.enable, text="Sensor 3: ")
-Sensor4_toggle = util.SliderToggle(screen, 100,300, 46, 'assets/toggle-button.gif', start_state=config.PHLUDD.Sensors.S4.enable, text="Sensor 4: ")
-Sensor5_toggle = util.SliderToggle(screen, 100,350, 46, 'assets/toggle-button.gif', start_state=config.PHLUDD.Sensors.S5.enable, text="Sensor 5: ")
-Sensor6_toggle = util.SliderToggle(screen, 100,400, 46, 'assets/toggle-button.gif', start_state=config.PHLUDD.Sensors.S6.enable, text="Sensor 6: ")
-
-## Map Icon ##
-map_icon = pygame.image.load('assets/map_icon.png')
-MapButton = util.Button(screen, 1120, 170, map_icon)
-
-## Exit Icon ##
-exit_icon = pygame.image.load('assets/x.png')
-ExitButton = util.Button(screen, 1206, 10, exit_icon)
-
-## Sensor Icons ##
-sensors = config.PHLUDD.Sensors
-sensor_array = [sensors.S0, sensors.S1, sensors.S2, sensors.S3, sensors.S4, sensors.S5, sensors.S6]
-sensor_icon = pygame.image.load('assets/target.png')
-sensor_icons = []
-for sensor in sensor_array:
-    if sensor.enable:
-        sensor_icons.append(ui.Sensor_Icon(screen, sensor.pos.x, sensor.pos.y, sensor_icon, f"Sensor {sensor_array.index(sensor)}", sensor_array[sensor_array.index(sensor)]))
-
-## Map ##
-map_img = pygame.image.load('assets/map/map.png')
-###### END UI #######
+        if not SMTP.isReady():
+            print("Gmail Setup did not complete successfuly, trying again in 5min")
+            pygame.time.set_timer(pygame.event.Event(api_retry, callback=gmail_setup), 300000)
 
 
-###### PHLUDD Hardware ######
-phludd = hardware.Phludd(screen, main_ui_bg, iris, config)
-phludd.init()
+def initialize():
+    global api_retry
+    global SMTP
+    global iris
+    global main_ui_bg
+    global weather
+    global status
+    global SettingsButton
+    global SensorToggleButtons
+    global MapButton
+    global ExitButton
+    global sensor_icons
+    global map_img
+    global phludd
+    global running
+
+    sensors = config.PHLUDD.Sensors
+    sensor_array = [sensors.S0, sensors.S1, sensors.S2, sensors.S3, sensors.S4, sensors.S5, sensors.S6]
+
+    ## Gmail ##
+    api_retry = pygame.event.custom_type()
+    SMTP = None
+    gmail_setup()
+
+    ###### UI ######
+
+    #### MAIN MENU ####
+
+    # Iris
+    iris = ui.Iris(screen, config)
+    iris.idle_look()
+
+    # BackGround
+    bgImg = pygame.image.load('assets/UI-Main.png')
+    bgImg = pygame.transform.scale(bgImg, config.PHLUDD.Display.resolution)
+    main_ui_bg = ui.BackGround(screen, bgImg, (32,32,32))
+
+    ## Weather Widget ##
+    weather = ui.Weather_Widget(screen, 10, 532, config)
+    weather.update()
+
+    ## Status Display ##
+    status = util.Text(screen, 120,30, font=pygame.font.Font("assets/fonts/Rounded Elegance.ttf", 30), text="Status:    Idle")
+
+    #### SETTINGS MENU ####
+
+    ## Setings Icon ##
+    settings_icon = pygame.image.load('assets/settings_icon.png')
+    SettingsButton = util.Button(screen, 1120, 10, settings_icon)
+
+    ## Toggle Buttons ##
+    SensorToggleButtons = []
+    y = 100
+    for sensor in sensor_array:
+        SensorToggleButtons.append(util.SliderToggle(screen, 100,y, 46, 'assets/toggle-button.gif', start_state=sensor.enable, text=f"Sensor {sensor_array.index(sensor)}: "))
+        y += 50
+
+    #### MAP MENU ####
+
+    ## Map Icon ##
+    map_icon = pygame.image.load('assets/map_icon.png')
+    MapButton = util.Button(screen, 1120, 170, map_icon)
+
+    ## Exit Icon ##
+    exit_icon = pygame.image.load('assets/x.png')
+    ExitButton = util.Button(screen, 1206, 10, exit_icon)
+
+    ## Sensor Icons ##
+    sensor_icon = pygame.image.load('assets/target.png')
+    sensor_icons = []
+    for sensor in sensor_array:
+        if sensor.enable:
+            sensor_icons.append(ui.Sensor_Icon(screen, sensor.pos.x, sensor.pos.y, sensor_icon, f"Sensor {sensor_array.index(sensor)}", sensor_array[sensor_array.index(sensor)]))
+
+    ## Map ##
+    map_img = pygame.image.load('assets/map/map.png')
+    ###### END UI #######
 
 
-#Main Loop
-running = True
+    ###### PHLUDD Hardware ######
+    phludd = hardware.Phludd(screen, main_ui_bg, iris, config)
+    phludd.init()
 
-run_timer = util.Timer()
+    running = True
 
 def ExitCleanup():
     global running
@@ -119,6 +147,30 @@ def ExitCleanup():
     pygame.quit()
     hardware.GPIO.cleanup()
 
+def loading():
+    while not running:
+        for event in pygame.event.get():
+            ## System Events ##
+            if event.type == pygame.QUIT:
+                ExitCleanup()
+                return
+
+            ## Keyboard Events ##
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_F4 and bool(event.mod & pygame.KMOD_ALT):
+                    ExitCleanup()
+                    return
+
+            elif hasattr(event, "msg"):
+                if event.msg == 'gif_update' or event.msg == "weather_update":
+                    event.callback()
+
+
+        screen.fill((0,0,0))
+        screen.blit(loading_bg, (0,0))
+        spinner.draw()
+
+        pygame.display.update()
 
 def map():
     click_start = 0
@@ -227,20 +279,10 @@ def settings():
                 if ExitButton.clicked(event.pos):
                     iris.idle_look()
                     return
-                elif Sensor0_toggle.clicked(event.pos):
-                    Sensor0_toggle.Toggle()
-                elif Sensor1_toggle.clicked(event.pos):
-                    Sensor1_toggle.Toggle()
-                elif Sensor2_toggle.clicked(event.pos):
-                    Sensor2_toggle.Toggle()
-                elif Sensor3_toggle.clicked(event.pos):
-                    Sensor3_toggle.Toggle()
-                elif Sensor4_toggle.clicked(event.pos):
-                    Sensor4_toggle.Toggle()
-                elif Sensor5_toggle.clicked(event.pos): 
-                    Sensor5_toggle.Toggle()
-                elif Sensor6_toggle.clicked(event.pos):
-                    Sensor6_toggle.Toggle()
+                for Toggle in SensorToggleButtons:
+                    if Toggle.clicked(event.pos):
+                        Toggle.Toggle()
+                        break
 
             ## Phludd hardware events ##
             elif event.type in phludd.events:
@@ -269,13 +311,10 @@ def settings():
                     event.callback()
 
         screen.fill((0,0,0))
-        Sensor0_toggle.draw()
-        Sensor1_toggle.draw()
-        Sensor2_toggle.draw()
-        Sensor3_toggle.draw()
-        Sensor4_toggle.draw()
-        Sensor5_toggle.draw()
-        Sensor6_toggle.draw()
+
+        for Toggle in SensorToggleButtons:
+            Toggle.draw()
+
         ExitButton.draw()
         pygame.display.update()
 
@@ -376,5 +415,12 @@ def main():
         MapButton.draw()
         weather.draw()
         pygame.display.update()
+
+run_timer = util.Timer()
+
+spinner.init()
+#initialize()
+threading.Thread(target=initialize).start()
+loading()
 
 main()

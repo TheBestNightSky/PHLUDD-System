@@ -156,11 +156,12 @@ class GIF:
         self.x = x
         self.y = y
         self.filename = filename
+        self.cache_id = filename
         
         if self.filename not in GIF.cache:
             self.load(self.filename)
 
-        self.Img, self.delay = GIF.cache[self.filename][0]
+        self.Img, self.delay = GIF.cache[self.cache_id][0]
         self.idx = 0
 
     def load(self, filename):
@@ -227,14 +228,23 @@ class GIF:
 
     def set_frame(self, index):
         self.idx = index
-        self.Img = GIF.cache[self.filename][self.idx][0]
+        self.Img = GIF.cache[self.cache_id][self.idx][0]
 
     def next_frame(self):
-        self.Img, delay = GIF.cache[self.filename][self.idx]
+        self.Img, delay = GIF.cache[self.cache_id][self.idx]
         self.idx += 1
-        if self.idx == len(GIF.cache[self.filename]):
+        if self.idx == len(GIF.cache[self.cache_id]):
             self.idx = 0
         pygame.time.set_timer(pygame.event.Event(self.update_event, msg="gif_update", callback=self.next_frame), delay)
+
+    def scale(self, newX, newY):
+        self.cache_id = self.filename + f" Scaled: {newX}x{newY}"
+        if self.cache_id not in GIF.cache:
+            GIF.cache[self.filename + f" Scaled: {newX}x{newY}"] = []
+
+            for i in range(0, len(GIF.cache[self.filename])):
+                GIF.cache[self.filename + f" Scaled: {newX}x{newY}"].append( (pygame.transform.scale(GIF.cache[self.filename][i][0], (newX, newY)), GIF.cache[self.filename][i][1]))
+            
 
     def draw(self):
         self.surface.blit(self.Img, (self.x, self.y))
