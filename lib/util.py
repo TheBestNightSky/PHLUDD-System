@@ -4,6 +4,34 @@ import time
 from PIL import Image
 ## Util ##
 
+
+## Utility used to define class instance functions inside a seperate namespace
+## while maintaining access to parent methods/atributes
+##
+## Usage:
+##     Define the desired namespace as a nested class that inherits from namespace
+##     Define functions inside that namespace
+##     In parent class __init__ call NameSpace(self)
+class NameSpace:
+    def __init__(self, parent):
+        if type(self) != NameSpace:
+            #this makes is so that functions defined in the nested class
+            #will get passed a referance to the parent class in the self argument
+            #instead of a pointer to itself when called
+            self.__dict__ = parent.__dict__
+        else:
+            atrs = vars(type(parent))
+            for obj in atrs:
+                if type(atrs[obj]) == type and issubclass(atrs[obj], NameSpace):
+                    ## asigns nested classes that inherit from namespace as
+                    ## class atributes to the parent class and instanciates them with parent obj
+                    setattr(parent, atrs[obj].__name__, atrs[obj](parent))
+        
+
+## Makes things ugly on the inside so they can be pretty on the outside :3 
+##########################################
+
+
 class Dict2Class(object):
     def __init__(self, dict_obj):
 
@@ -113,7 +141,7 @@ class Button:
 
 
 class SliderToggle(Button):
-    def __init__(self, surface, x, y, true_frame, file, start_state=False, text="<Text>"):
+    def __init__(self, surface, x, y, true_frame, file, start_state=False, text="<Text>", config=None):
         self.surface = surface
         self.x = x
         self.y = y
@@ -121,14 +149,23 @@ class SliderToggle(Button):
         self.lable = Text(self.surface, self.x, self.y, text=text)
         self.gif = GIF(self.surface, 0, 0, file)
         self.gif.x, self.gif.y = self.x + self.lable.img.get_width(), self.y - (self.gif.Img.get_height() // 2.5)
-        self.state = start_state
-        if start_state:
+        
+        if config == None:
+            self.state = start_state
+        else:
+            self.state = config.enable
+            
+        self.config = config
+
+        if self.state:
             self.gif.set_frame(self.true_frame)
         
 
     def Toggle(self):
         if self.gif.update_event is None:
             self.state = not self.state
+            if self.config is not None:
+                self.config.enable = self.state
             self.gif.init()
             self.gif.next_frame()
 
@@ -159,13 +196,19 @@ class GIF:
         self.cache_id = filename
         
         if self.filename not in GIF.cache:
-            self.load(self.filename)
+            self._load(self.filename)
 
         self.Img, self.delay = GIF.cache[self.cache_id][0]
         self.idx = 0
 
-    def load(self, filename):
+        ## namespace stuff
+        #self.transform = GIF.transform(self)
+        NameSpace(self)
+
+    ## Internal Functions ##
+    def _load(self, filename):
         ## Hacky BS to get information from gif file that PIL dosnt read >:C ##
+        ## NOTE: turns out it does read it, the methods to get the info are just completely undocumented >:C
         frame_data = []
         with open(filename, "rb") as file:
             if file.read(3).decode('ansi') != "GIF":
@@ -201,7 +244,7 @@ class GIF:
             GIF.cache[filename].append((buffer.copy(), ord(frame_data[seq.index(image)]["delay"][:1]) * 10))
 
 
-    def reserve_id(self):
+    def _reserve_id(self):
         found = False
         for key in type(self).recycle:
             if type(self).recycle[key] == False:
@@ -213,18 +256,19 @@ class GIF:
             self.update_event = pygame.event.custom_type()
             type(self).recycle[self.update_event] = True
 
-    def release_id(self):
+    def _release_id(self):
         type(self).recycle[self.update_event] = False
         self.update_event = None
-        
+    
+    ## External Functions ##
     def init(self):
-        self.reserve_id()
+        self._reserve_id()
         pygame.time.set_timer(pygame.event.Event(self.update_event, msg="gif_update", callback=self.next_frame), GIF.cache[self.filename][self.idx][1])
 
     def halt(self):
         if self.update_event is not None:
             pygame.time.set_timer(pygame.event.Event(self.update_event, msg="gif_update", callback=self.next_frame), 0)
-            self.release_id()
+            self._release_id()
 
     def set_frame(self, index):
         self.idx = index
@@ -237,13 +281,16 @@ class GIF:
             self.idx = 0
         pygame.time.set_timer(pygame.event.Event(self.update_event, msg="gif_update", callback=self.next_frame), delay)
 
-    def scale(self, newX, newY):
-        self.cache_id = self.filename + f" Scaled: {newX}x{newY}"
-        if self.cache_id not in GIF.cache:
-            GIF.cache[self.filename + f" Scaled: {newX}x{newY}"] = []
 
-            for i in range(0, len(GIF.cache[self.filename])):
-                GIF.cache[self.filename + f" Scaled: {newX}x{newY}"].append( (pygame.transform.scale(GIF.cache[self.filename][i][0], (newX, newY)), GIF.cache[self.filename][i][1]))
+    class transform(NameSpace):
+
+        def scale(self, newX, newY):
+            self.cache_id = self.filename + f" Scaled: {newX}x{newY}"
+            if self.cache_id not in GIF.cache:
+                GIF.cache[self.filename + f" Scaled: {newX}x{newY}"] = []
+
+                for i in range(0, len(GIF.cache[self.filename])):
+                    GIF.cache[self.filename + f" Scaled: {newX}x{newY}"].append( (pygame.transform.scale(GIF.cache[self.filename][i][0], (newX, newY)), GIF.cache[self.filename][i][1]))
             
 
     def draw(self):

@@ -154,9 +154,8 @@ class Phludd:
 
 
     def alarm_test(self):
-        self.state = self.STATE_ALARM
-        self.cycle = 0
-        self.alarm_handle(1, 1)
+        ids = list(range(0, 7))
+        pygame.event.post(pygame.event.Event(self.phludd_alarm_trigger_event, sensor_ids=ids, isTest=True))
 
 
     def alarm_lbat(self):
@@ -199,7 +198,7 @@ class Phludd:
                     trig.append(False)
 
             if any(trig):
-                e = pygame.event.post(pygame.event.Event(self.phludd_alarm_trigger_event, sensor_ids=ids))
+                pygame.event.post(pygame.event.Event(self.phludd_alarm_trigger_event, sensor_ids=ids, isTest=False))
             else:
                 pygame.time.set_timer(self.phludd_sensor_read_event, self.poll_rate)
                 pygame.event.post(pygame.event.Event(self.phludd_sensor_finish_event))

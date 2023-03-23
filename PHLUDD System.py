@@ -38,7 +38,7 @@ loading_bg = pygame.image.load('assets/phludd.png')
 loading_bg = pygame.transform.scale(loading_bg, config.PHLUDD.Display.resolution)
 
 spinner = util.GIF(screen, 555, 540, "assets/807.gif")
-spinner.scale(170,170)
+spinner.transform.scale(170,170)
 
 running = False
 
@@ -51,9 +51,11 @@ def gmail_setup():
         if SMTP.service == None:
             SMTP.build_service()
 
-        if not SMTP.isReady():
+        ready = SMTP.isReady()
+        if not ready:
             print("Gmail Setup did not complete successfuly, trying again in 5min")
             pygame.time.set_timer(pygame.event.Event(api_retry, callback=gmail_setup), 300000)
+        return ready
 
 
 def initialize():
@@ -65,8 +67,10 @@ def initialize():
     global status
     global SettingsButton
     global SensorToggleButtons
+    global EmailToggleButton
     global MapButton
     global ExitButton
+    global sensor_array
     global sensor_icons
     global map_img
     global phludd
@@ -78,7 +82,8 @@ def initialize():
     ## Gmail ##
     api_retry = pygame.event.custom_type()
     SMTP = None
-    gmail_setup()
+    if config.PHLUDD.Email.enable:
+        gmail_setup()
 
     ###### UI ######
 
@@ -110,8 +115,10 @@ def initialize():
     SensorToggleButtons = []
     y = 100
     for sensor in sensor_array:
-        SensorToggleButtons.append(util.SliderToggle(screen, 100,y, 46, 'assets/toggle-button.gif', start_state=sensor.enable, text=f"Sensor {sensor_array.index(sensor)}: "))
+        SensorToggleButtons.append(util.SliderToggle(screen, 100,y, 46, 'assets/toggle-button.gif', config=sensor_array[sensor_array.index(sensor)], text=f"Sensor {sensor_array.index(sensor)}: "))
         y += 50
+
+    EmailToggleButton = util.SliderToggle(screen, 500, 100, 46, 'assets/toggle-button.gif', config=config.PHLUDD.Email, text=f"Enabled Email Notifications: ")
 
     #### MAP MENU ####
 
@@ -127,8 +134,7 @@ def initialize():
     sensor_icon = pygame.image.load('assets/target.png')
     sensor_icons = []
     for sensor in sensor_array:
-        if sensor.enable:
-            sensor_icons.append(ui.Sensor_Icon(screen, sensor.pos.x, sensor.pos.y, sensor_icon, f"Sensor {sensor_array.index(sensor)}", sensor_array[sensor_array.index(sensor)]))
+        sensor_icons.append(ui.Sensor_Icon(screen, sensor.pos.x, sensor.pos.y, sensor_icon, f"Sensor {sensor_array.index(sensor)}", sensor_array[sensor_array.index(sensor)]))
 
     ## Map ##
     map_img = pygame.image.load('assets/map/map.png')
@@ -220,69 +226,11 @@ def map():
                 if click_target == None:
                     click_start = time.time()
                     click_target = clicked
-
-
-             ## Phludd hardware events ##
-            elif event.type in phludd.events:
-                phludd.event_handle(event)
-                if event.type == phludd.phludd_sensor_read_event:
-                    status.setText("Status:    Scanning...")
-                elif event.type == phludd.phludd_alarm_clear_event:
-                    for sensor in sensor_icons:
-                        sensor.reset()
-                elif event.type == phludd.phludd_idle_event:
-                    status.setText("Status:    Idle")
-                elif event.type == phludd.phludd_alarm_trigger_event:
-                    for sensor in event.sensor_ids:
-                        sensor_icons[sensor].trigger()
-
-                    status.setText("Status:    !Flood Detected!")
-                elif event.type == phludd.phludd_lbat_trigger_event:
-                    status.setText("Status:    Battery Low!")
-
-            ## API events ##
-            elif event.type == api_retry:
-                event.callback()
-
+            
+            # UI events
             elif hasattr(event, "msg"):
                 if event.msg == 'gif_update' or event.msg == "weather_update":
                     event.callback()
-
-        screen.fill((0,0,0,0))
-        screen.blit(map_img, (0,0))
-
-        for icon in sensor_icons:
-            icon.draw()
-
-        ExitButton.draw()
-
-        pygame.display.update()
-
-
-def settings():
-    while running:
-        # Event Processing
-        for event in pygame.event.get():
-            ## System Events ##
-            if event.type == pygame.QUIT:
-                ExitCleanup()
-                return
-
-            ## Keyboard Events ##
-            elif event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_F4 and bool(event.mod & pygame.KMOD_ALT):
-                    ExitCleanup()
-                    return
-
-            ## Mouse / Touch Events ##
-            elif event.type == pygame.MOUSEBUTTONUP:
-                if ExitButton.clicked(event.pos):
-                    iris.idle_look()
-                    return
-                for Toggle in SensorToggleButtons:
-                    if Toggle.clicked(event.pos):
-                        Toggle.Toggle()
-                        break
 
             ## Phludd hardware events ##
             elif event.type in phludd.events:
@@ -306,14 +254,89 @@ def settings():
             elif event.type == api_retry:
                 event.callback()
 
+        screen.fill((0,0,0,0))
+        screen.blit(map_img, (0,0))
+
+        for sensor in sensor_array:
+            if sensor.enable:
+                sensor_icons[sensor_array.index(sensor)].draw()
+
+        ExitButton.draw()
+
+        pygame.display.update()
+
+
+def settings():
+    settings_changed = False
+    while running:
+        # Event Processing
+        for event in pygame.event.get():
+            ## System Events ##
+            if event.type == pygame.QUIT:
+                ExitCleanup()
+                return
+
+            ## Keyboard Events ##
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_F4 and bool(event.mod & pygame.KMOD_ALT):
+                    ExitCleanup()
+                    return
+
+            ## Mouse / Touch Events ##
+            elif event.type == pygame.MOUSEBUTTONUP:
+                if ExitButton.clicked(event.pos):
+                    iris.idle_look()
+                    if settings_changed:
+                        if config.PHLUDD.Email.enable:
+                            gmail_setup()
+                        config.save()
+                        settings_changed = False
+                    return
+
+                elif EmailToggleButton.clicked(event.pos):
+                    EmailToggleButton.Toggle()
+                    settings_changed = True
+
+                else:
+                    for Toggle in SensorToggleButtons:
+                        if Toggle.clicked(event.pos):
+                            Toggle.Toggle()
+                            settings_changed = True
+                            break
+
+
             elif hasattr(event, "msg"):
                 if event.msg == 'gif_update' or event.msg == "weather_update":
                     event.callback()
+
+            ## Phludd hardware events ##
+            elif event.type in phludd.events:
+                phludd.event_handle(event)
+                if event.type == phludd.phludd_sensor_read_event:
+                    status.setText("Status:    Scanning...")
+                elif event.type == phludd.phludd_alarm_clear_event:
+                    for sensor in sensor_icons:
+                        sensor.reset()
+                elif event.type == phludd.phludd_idle_event:
+                    status.setText("Status:    Idle")
+                elif event.type == phludd.phludd_alarm_trigger_event:
+                    for sensor in event.sensor_ids:
+                        sensor_icons[sensor].trigger()
+
+                    status.setText("Status:    !Flood Detected!")
+                elif event.type == phludd.phludd_lbat_trigger_event:
+                    status.setText("Status:    Battery Low!")
+
+            ## API events ##
+            elif event.type == api_retry:
+                event.callback()
 
         screen.fill((0,0,0))
 
         for Toggle in SensorToggleButtons:
             Toggle.draw()
+
+        EmailToggleButton.draw()
 
         ExitButton.draw()
         pygame.display.update()
@@ -335,12 +358,10 @@ def main():
                     ExitCleanup()
 
                 elif event.key == pygame.K_F12:
-                    e = pygame.event.post(pygame.event.Event(phludd.phludd_alarm_trigger_event))
-                    print("Post Alarm Norm Event: ", e)
+                    phludd.alarm_test()
 
                 elif event.key == pygame.K_F11:
                     e = pygame.event.post(pygame.event.Event(phludd.phludd_lbat_trigger_event))
-                    print("Post Alarm Lbat Event: ", e)
 
                 elif event.key == pygame.K_F10:
                     phludd.alarm_silence()
@@ -354,6 +375,14 @@ def main():
                     map()
                 elif SettingsButton.clicked(event.pos):
                     settings()
+            
+            ## UI Events ##
+            elif event.type == iris.idle_look_event:
+                iris.idle_look()
+
+            elif hasattr(event, "msg"):
+                if event.msg == 'gif_update' or event.msg == "weather_update":
+                    event.callback()
 
             ## Phludd hardware events ##
             elif event.type in phludd.events:
@@ -372,23 +401,14 @@ def main():
                         sensor_icons[sensor].trigger()
                         sensor_string = sensor_string + "id: " + str(sensor) + " | lable: " + sensor_icons[sensor].lable.text + ",\n        "
                     sensor_string = sensor_string[:-10]
-                    if config.PHLUDD.Email.enable and SMTP.isReady():
-                        msg = f"PHLUDD System automated alert!\n\nWARNING!:\n        Water level rising above acceptable boundary!\n\nAlarm triggered by sensor(s):\n{sensor_string}"
-                        SMTP.send_message(msg, config.PHLUDD.Email.recipient_string)
+                    if config.PHLUDD.Email.enable and SMTP is not None:
+                        if SMTP.isReady():
+                            msg = f"PHLUDD System automated alert!\n\nWARNING!:\n        Water level rising above acceptable boundary!\n\nAlarm triggered by sensor(s):\n{sensor_string}"
+                            SMTP.send_message(msg, config.PHLUDD.Email.recipient_string)
 
                     status.setText("Status:    !Flood Detected!")
                 elif event.type == phludd.phludd_lbat_trigger_event:
                     status.setText("Status:    Battery Low!")
-            
-
-            
-            ## UI Events ##
-            elif event.type == iris.idle_look_event:
-                iris.idle_look()
-
-            elif hasattr(event, "msg"):
-                if event.msg == 'gif_update' or event.msg == "weather_update":
-                    event.callback()
 
             ## API events ##
             elif event.type == api_retry:
@@ -423,4 +443,6 @@ spinner.init()
 threading.Thread(target=initialize).start()
 loading()
 
-main()
+if running:
+    spinner.halt()
+    main()
