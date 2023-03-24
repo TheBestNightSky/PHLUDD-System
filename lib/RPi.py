@@ -7,6 +7,7 @@ try:
 
 except ImportError as e:
     import random
+    print("RPI.GPIO is missing!! Running in simulation mode!")
     sim = True
 
 
