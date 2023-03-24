@@ -91,7 +91,6 @@ def initialize():
 
     # Iris
     iris = ui.Iris(screen, config)
-    iris.idle_look()
 
     # BackGround
     bgImg = pygame.image.load('assets/UI-Main.png')
@@ -445,4 +444,5 @@ loading()
 
 if running:
     spinner.halt()
+    iris.idle_look()
     main()
