@@ -211,7 +211,7 @@ class GIF:
         ## NOTE: turns out it does read it, the methods to get the info are just completely undocumented >:C
         frame_data = []
         with open(filename, "rb") as file:
-            if file.read(3).decode('ansi') != "GIF":
+            if file.read(3).decode('ISO 8859-1') != "GIF":
                 raise Exception("File is not a GIF!")
 
             while (byte := file.read(1)):
@@ -275,11 +275,14 @@ class GIF:
         self.Img = GIF.cache[self.cache_id][self.idx][0]
 
     def next_frame(self):
-        self.Img, delay = GIF.cache[self.cache_id][self.idx]
-        self.idx += 1
-        if self.idx == len(GIF.cache[self.cache_id]):
-            self.idx = 0
-        pygame.time.set_timer(pygame.event.Event(self.update_event, msg="gif_update", callback=self.next_frame), delay)
+        if self.update_event != None:
+            self.Img, delay = GIF.cache[self.cache_id][self.idx]
+            self.idx += 1
+            if self.idx == len(GIF.cache[self.cache_id]):
+                self.idx = 0
+            pygame.time.set_timer(pygame.event.Event(self.update_event, msg="gif_update", callback=self.next_frame), delay)
+        else:
+            print("Tried to update halted gif!")
 
 
     class transform(NameSpace):
