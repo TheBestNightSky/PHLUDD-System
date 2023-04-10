@@ -23,6 +23,17 @@ from Crypto.Random import get_random_bytes
 
 from web.protocol import *
 
+#server constants
+PORT = 5050
+
+guest_id = "guestname"
+guest_auth = "12345678-1234-1234-1234-123456789012"
+
+server_id = "server"
+server_auth = "99999999-9999-9999-9999-999999999999"
+
+LOGIN_DB = "credentials/user.db"
+
 class ThreadSafe:
     class list:
         def __init__(self):
@@ -60,6 +71,9 @@ class ThreadSafe:
     def print(*args, **kwargs):
         with ThreadSafe.print_lock:
             print(*args, **kwargs)
+
+ConnectionList = ThreadSafe.list()
+Authorized_IDs = ThreadSafe.list()
 
 class Command:
 
@@ -220,61 +234,6 @@ def get_local_ip():
     finally:
         s.close()
     return IP
-
-#Socket server
-PORT = 5050
-HOST = get_local_ip()
-HOST_EXTERNAL = requests.get('https://api.ipify.org').content.decode('utf8')
-ADDRESS = (HOST, PORT)
-
-#Broadcast Interface
-
-
-
-
-guest_id = "guestname"
-guest_auth = "12345678-1234-1234-1234-123456789012"
-
-server_id = "server"
-server_auth = "99999999-9999-9999-9999-999999999999"
-
-#crypto
-random = Random().read
-if not os.path.isfile('credentials/sig.key'):
-    RSAsig = RSA.generate(2048, random)
-    sig_private = RSAsig.exportKey()
-    sig_public = RSAsig.publickey().exportKey()
-    with open('credentials/sig.key', 'wb') as file:
-        file.write(sig_private)
-        file.close()
-
-    with open('credentials/sig.cert', 'wb') as file:
-        cert = {"public_key": sig_public.decode(FORMAT), "valid_adress": [HOST, HOST_EXTERNAL]}
-        data = json.dumps(cert, sort_keys=True, indent=4).encode(FORMAT)
-        dhash = SHA512.new()
-        dhash.update(data)
-        sig = signature.new(RSAsig)
-        data += b"\n--SIGNATURE--\n" + sig.sign(dhash)
-        file.write(data)
-        file.close()
-
-RSAkey = RSA.generate(1024, random)
-public = RSAkey.publickey().exportKey()
-
-with open("credentials/sig.key", 'rb') as file:
-    pub_data = public + str(HEADER_TYPE).encode(FORMAT) + str(HEADER_ID).encode(FORMAT) + str(HEADER_AUTH).encode(FORMAT) + str(HEADER_DATA).encode(FORMAT) + str(HEADER_SIZE).encode(FORMAT)
-    public_hash = SHA512.new()
-    public_hash.update(pub_data)
-    key = RSA.importKey(file.read())
-
-    sig = signature.new(key).sign(public_hash)
-
-private = RSAkey.exportKey()
-
-ConnectionList = ThreadSafe.list()
-Authorized_IDs = ThreadSafe.list()
-
-LOGIN_DB = "credentials/user.db"
 
 def create_login_db():
     if not os.path.isfile(LOGIN_DB):
@@ -490,8 +449,61 @@ def broadcast_service(ADDRESS):
     server.close()
     print("[INFO] Location broadcast stopped ")
 
-def server_start(ADDRESS):
+def server_start():
     global running
+    global sig
+    global RSAkey
+    global public
+    global ConnectionList
+    global Authorized_IDs
+
+    #Socket server
+    print("[INFO] Server verifying network connectivity")
+    network = False
+    while not network:
+        try:
+            HOST_EXTERNAL = requests.get('https://api.ipify.org').content.decode('utf8')
+            network = True
+        except requests.exceptions.ConnectionError as e:
+            time.sleep(1)
+            continue
+
+    HOST = get_local_ip()
+    ADDRESS = (HOST, PORT)
+
+    #crypto
+    random = Random().read
+    if not os.path.isfile('credentials/sig.key'):
+        RSAsig = RSA.generate(2048, random)
+        sig_private = RSAsig.exportKey()
+        sig_public = RSAsig.publickey().exportKey()
+        with open('credentials/sig.key', 'wb') as file:
+            file.write(sig_private)
+            file.close()
+
+        with open('credentials/sig.cert', 'wb') as file:
+            cert = {"public_key": sig_public.decode(FORMAT), "valid_adress": [HOST, HOST_EXTERNAL]}
+            data = json.dumps(cert, sort_keys=True, indent=4).encode(FORMAT)
+            dhash = SHA512.new()
+            dhash.update(data)
+            sig = signature.new(RSAsig)
+            data += b"\n--SIGNATURE--\n" + sig.sign(dhash)
+            file.write(data)
+            file.close()
+
+    RSAkey = RSA.generate(1024, random)
+    public = RSAkey.publickey().exportKey()
+
+    with open("credentials/sig.key", 'rb') as file:
+        pub_data = public + str(HEADER_TYPE).encode(FORMAT) + str(HEADER_ID).encode(FORMAT) + str(HEADER_AUTH).encode(FORMAT) + str(HEADER_DATA).encode(FORMAT) + str(HEADER_SIZE).encode(FORMAT)
+        public_hash = SHA512.new()
+        public_hash.update(pub_data)
+        key = RSA.importKey(file.read())
+
+        sig = signature.new(key).sign(public_hash)
+
+    private = RSAkey.exportKey()
+
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server.settimeout(SOCKET_TIMEOUT)
     server.bind(ADDRESS)
@@ -533,5 +545,5 @@ def alert_all(message):
 create_login_db()
 print(f"[STARTING] server on port {PORT}...")
 running = True
-thread = threading.Thread(target=server_start, args=(ADDRESS,), daemon=True)
+thread = threading.Thread(target=server_start, daemon=True)
 thread.start()
