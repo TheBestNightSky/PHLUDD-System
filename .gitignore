@@ -373,3 +373,4 @@ credentials/*
 env/*
 /*.pyproj
 /PHLUDD System.pyproj
+/start.bat

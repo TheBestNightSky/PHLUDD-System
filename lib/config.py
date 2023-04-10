@@ -115,6 +115,9 @@ class Configuration:
         self.stream_mode = False
         self.fullscreen = True
 
+    def reinit(self):
+        self.__init__()
+
     def save(self):
         config_dict = self.PHLUDD.ToDict()
         if "resolution" in config_dict["Display"]:
@@ -127,3 +130,19 @@ class Configuration:
         with open('config.json', 'w') as outfile:
             outfile.write(json_object)
             outfile.close()
+
+    def update_from_string(self, *string):
+        if len(string) > 1:
+            json_str = " ".join(string)
+        else:
+            json_str = string[0]
+
+        json_obj = json.loads(json_str)
+        self.PHLUDD.reset(json_obj)
+        self.save()
+        self.reinit()
+
+    def get_json_string(self):
+        json_obj = self.PHLUDD.ToDict()
+        return json.dumps(json_obj, indent=4)
+

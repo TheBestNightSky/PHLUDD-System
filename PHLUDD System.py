@@ -10,7 +10,7 @@ import lib.hardware as hardware
 import lib.user_interface as ui
 import lib.util as util
 import lib.gmail_handle
-
+import web.server as Server
 
 
 def debug(config : Configuration):
@@ -21,6 +21,15 @@ def debug(config : Configuration):
 # load Settings and API Keys
 config = Configuration()
 debug(config)
+
+#server command registration for configuration commands
+usage = "setConfig <json_string>"
+description = "Loads new json object into phludd configuration and saves configuration to config.json"
+Server.Command.register("setConfig", 10, config.update_from_string, usage, description)
+
+usage = "getConfig"
+description = "Requests the server to send the current configuration to the client"
+Server.Command.register("getConfig", 10, config.get_json_string, usage, description)
 
 #Create Screen
 if config.fullscreen:
@@ -151,6 +160,7 @@ def ExitCleanup():
     running = False
     pygame.quit()
     hardware.GPIO.cleanup()
+    Server.server_stop()
 
 def loading():
     while not running:
@@ -318,13 +328,16 @@ def settings():
                         sensor.reset()
                 elif event.type == phludd.phludd_idle_event:
                     status.setText("Status:    Idle")
+                    Server.alert_all("PHLUDD device has returned to an IDLE state")
                 elif event.type == phludd.phludd_alarm_trigger_event:
                     for sensor in event.sensor_ids:
                         sensor_icons[sensor].trigger()
+                    Server.alert_all("PHLUDD device has entered an ALARM state")
 
                     status.setText("Status:    !Flood Detected!")
                 elif event.type == phludd.phludd_lbat_trigger_event:
                     status.setText("Status:    Battery Low!")
+                    Server.alert_all("PHLUDD device has entered a LOW_BATTERY state")
 
             ## API events ##
             elif event.type == api_retry:
@@ -394,12 +407,14 @@ def main():
                 elif event.type == phludd.phludd_idle_event:
                     main_ui_bg.setColor((32, 32, 32))
                     status.setText("Status:    Idle")
+                    Server.alert_all("PHLUDD device has returned to an IDLE state")
                 elif event.type == phludd.phludd_alarm_trigger_event:
                     sensor_string = "        "
                     for sensor in event.sensor_ids:
                         sensor_icons[sensor].trigger()
                         sensor_string = sensor_string + "id: " + str(sensor) + " | lable: " + sensor_icons[sensor].lable.text + ",\n        "
                     sensor_string = sensor_string[:-10]
+                    Server.alert_all("PHLUDD device has entered an ALARM state")
                     if config.PHLUDD.Email.enable and SMTP is not None:
                         if SMTP.isReady():
                             msg = f"PHLUDD System automated alert!\n\nWARNING!:\n        Water level rising above acceptable boundary!\n\nAlarm triggered by sensor(s):\n{sensor_string}"
@@ -408,6 +423,7 @@ def main():
                     status.setText("Status:    !Flood Detected!")
                 elif event.type == phludd.phludd_lbat_trigger_event:
                     status.setText("Status:    Battery Low!")
+                    Server.alert_all("PHLUDD device has entered a LOW_BATTERY state")
 
             ## API events ##
             elif event.type == api_retry:

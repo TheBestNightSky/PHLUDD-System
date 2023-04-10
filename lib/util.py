@@ -51,6 +51,9 @@ class Dict2Class(object):
                 node_dict[key] = node_dict[key].ToDict()
 
         return node_dict
+
+    def reset(self, dict_obj):
+        self.__init__(dict_obj)
             
 class Coords:
     def __init__(self, x, y, z=0):
