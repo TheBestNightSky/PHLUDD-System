@@ -514,8 +514,12 @@ def server_stop():
     ThreadSafe.print(f"[INFO] Stopping server...")
     global running
     for i in ConnectionList:
-        conn, addr, key = i
+        if len(i) == 3:
+            conn, addr, key = i
+        elif len(i) == 2:
+            conn, addr = i
         send_message(conn, (HTYPE_DISCONNECT, server_id, server_auth), "Server shutting down")
+
     running = False
     time.sleep(5)
 
