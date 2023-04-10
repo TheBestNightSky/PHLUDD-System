@@ -374,7 +374,11 @@ def client_handshake(connection, address):
             ConnectionList.remove((connection, address))
     
     except ConnectionResetError as e:
-        ThreadSafe.print(f"[{address}] Diconnected without warning.")
+        ThreadSafe.print(f"[{address}] Diconnected without warning. (Client Connection Reset)")
+        ConnectionList.remove((connection, address))
+
+    except socket.timeout as e:
+        ThreadSafe.print(f"[{address}] Diconnected without warning. (Client Timed Out)")
         ConnectionList.remove((connection, address))
 
 
