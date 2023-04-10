@@ -401,6 +401,7 @@ def main():
                 phludd.event_handle(event)
                 if event.type == phludd.phludd_sensor_read_event:
                     status.setText("Status:    Scanning...")
+                    Server.alert_all("PHLUDD device is polling water sensors for data")
                 elif event.type == phludd.phludd_alarm_clear_event:
                     for sensor in sensor_icons:
                         sensor.reset()
