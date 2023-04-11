@@ -22,15 +22,6 @@ def debug(config : Configuration):
 config = Configuration()
 debug(config)
 
-#server command registration for configuration commands
-usage = "setConfig <json_string>"
-description = "Loads new json object into phludd configuration and saves configuration to config.json"
-Server.Command.register("setConfig", 10, config.update_from_string, usage, description)
-
-usage = "getConfig"
-description = "Requests the server to send the current configuration to the client"
-Server.Command.register("getConfig", 10, config.get_json_string, usage, description)
-
 #Create Screen
 if config.fullscreen:
     screen = pygame.display.set_mode(config.PHLUDD.Display.resolution, pygame.FULLSCREEN)
@@ -155,6 +146,26 @@ def initialize():
 
     running = True
 
+#server command registration for configuration commands
+usage = "setConfig <json_string>"
+description = "Loads new json object into phludd configuration and saves configuration to config.json"
+def setConfig(*args):
+    global SensorToggleButtons
+    global sensor_array
+    config.update_from_string(*args)
+
+    sensors = config.PHLUDD.Sensors
+    sensor_array = [sensors.S0, sensors.S1, sensors.S2, sensors.S3, sensors.S4, sensors.S5, sensors.S6]
+
+    for button in SensorToggleButtons:
+        print(f"[INFO] Sensor Button {SensorToggleButtons.index(button)} set {sensor_array[SensorToggleButtons.index(button)].enable}")
+        button.setState(sensor_array[SensorToggleButtons.index(button)].enable)
+Server.Command.register("setConfig", 10, setConfig, usage, description)
+
+usage = "getConfig"
+description = "Requests the server to send the current configuration to the client"
+Server.Command.register("getConfig", 10, config.get_json_string, usage, description)
+
 def ExitCleanup():
     global running
     running = False
@@ -277,6 +288,8 @@ def map():
 
 def settings():
     settings_changed = False
+    for button in SensorToggleButtons:
+        button.active = True
     while running:
         # Event Processing
         for event in pygame.event.get():
@@ -294,12 +307,14 @@ def settings():
             ## Mouse / Touch Events ##
             elif event.type == pygame.MOUSEBUTTONUP:
                 if ExitButton.clicked(event.pos):
-                    iris.idle_look()
                     if settings_changed:
                         if config.PHLUDD.Email.enable:
                             gmail_setup()
                         config.save()
                         settings_changed = False
+                    for button in SensorToggleButtons:
+                        button.active = False
+                    iris.idle_look()
                     return
 
                 elif EmailToggleButton.clicked(event.pos):

@@ -2,6 +2,7 @@ from re import L
 import pygame
 import time
 from PIL import Image
+import threading
 ## Util ##
 
 
@@ -144,7 +145,7 @@ class Button:
 
 
 class SliderToggle(Button):
-    def __init__(self, surface, x, y, true_frame, file, start_state=False, text="<Text>", config=None):
+    def __init__(self, surface, x, y, true_frame, file, start_state=False, text="<Text>", config=None, active=False):
         self.surface = surface
         self.x = x
         self.y = y
@@ -152,6 +153,8 @@ class SliderToggle(Button):
         self.lable = Text(self.surface, self.x, self.y, text=text)
         self.gif = GIF(self.surface, 0, 0, file)
         self.gif.x, self.gif.y = self.x + self.lable.img.get_width(), self.y - (self.gif.Img.get_height() // 2.5)
+
+        self.active = active
         
         if config == None:
             self.state = start_state
@@ -172,6 +175,17 @@ class SliderToggle(Button):
             self.gif.init()
             self.gif.next_frame()
 
+    def setState(self, state: bool):
+        if self.state != state:
+            if self.active == True:
+                self.Toggle()
+            else:
+                self.state = state
+                if self.state:
+                    self.gif.set_frame(self.true_frame)
+                else:
+                    self.gif.set_frame(0)
+
     def draw(self):
         self.lable.draw()
         self.gif.draw()
@@ -189,6 +203,7 @@ class SliderToggle(Button):
 class GIF:
     recycle = {}
     cache = {}
+    gif_lock = threading.Lock()
 
     def __init__(self, surface, x, y, filename):
         self.surface = surface
@@ -265,38 +280,43 @@ class GIF:
     
     ## External Functions ##
     def init(self):
-        self._reserve_id()
-        pygame.time.set_timer(pygame.event.Event(self.update_event, msg="gif_update", callback=self.next_frame), GIF.cache[self.filename][self.idx][1])
+        with GIF.gif_lock:
+            self._reserve_id()
+            pygame.time.set_timer(pygame.event.Event(self.update_event, msg="gif_update", callback=self.next_frame), GIF.cache[self.filename][self.idx][1])
 
     def halt(self):
-        if self.update_event is not None:
-            pygame.time.set_timer(pygame.event.Event(self.update_event, msg="gif_update", callback=self.next_frame), 0)
-            self._release_id()
+        with GIF.gif_lock:
+            if self.update_event is not None:
+                pygame.time.set_timer(pygame.event.Event(self.update_event, msg="gif_update", callback=self.next_frame), 0)
+                self._release_id()
 
     def set_frame(self, index):
-        self.idx = index
-        self.Img = GIF.cache[self.cache_id][self.idx][0]
+        with GIF.gif_lock:
+            self.idx = index
+            self.Img = GIF.cache[self.cache_id][self.idx][0]
 
     def next_frame(self):
-        if self.update_event != None:
-            self.Img, delay = GIF.cache[self.cache_id][self.idx]
-            self.idx += 1
-            if self.idx == len(GIF.cache[self.cache_id]):
-                self.idx = 0
-            pygame.time.set_timer(pygame.event.Event(self.update_event, msg="gif_update", callback=self.next_frame), delay)
-        else:
-            print("Tried to update halted gif!")
+        with GIF.gif_lock:
+            if self.update_event != None:
+                self.Img, delay = GIF.cache[self.cache_id][self.idx]
+                self.idx += 1
+                if self.idx == len(GIF.cache[self.cache_id]):
+                    self.idx = 0
+                pygame.time.set_timer(pygame.event.Event(self.update_event, msg="gif_update", callback=self.next_frame), delay)
+            else:
+                print("Tried to update halted gif!")
 
 
     class transform(NameSpace):
 
         def scale(self, newX, newY):
-            self.cache_id = self.filename + f" Scaled: {newX}x{newY}"
-            if self.cache_id not in GIF.cache:
-                GIF.cache[self.filename + f" Scaled: {newX}x{newY}"] = []
+            with GIF.gif_lock:
+                self.cache_id = self.filename + f" Scaled: {newX}x{newY}"
+                if self.cache_id not in GIF.cache:
+                    GIF.cache[self.filename + f" Scaled: {newX}x{newY}"] = []
 
-                for i in range(0, len(GIF.cache[self.filename])):
-                    GIF.cache[self.filename + f" Scaled: {newX}x{newY}"].append( (pygame.transform.scale(GIF.cache[self.filename][i][0], (newX, newY)), GIF.cache[self.filename][i][1]))
+                    for i in range(0, len(GIF.cache[self.filename])):
+                        GIF.cache[self.filename + f" Scaled: {newX}x{newY}"].append( (pygame.transform.scale(GIF.cache[self.filename][i][0], (newX, newY)), GIF.cache[self.filename][i][1]))
             
 
     def draw(self):
