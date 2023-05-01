@@ -1,6 +1,7 @@
 import random
 import pygame
 import collections
+import time
 from lib.RPi import GPIO
 from lib.ADC import MCP
 
@@ -182,7 +183,7 @@ class Phludd:
 
     def ocp_reset(self):
         GPIO.output(GPIO_OCP_RESET, GPIO.HIGH)
-        pass
+        time.sleep(0.5)
         GPIO.output(GPIO_OCP_RESET, GPIO.LOW)
 
     def read_sensors(self):
