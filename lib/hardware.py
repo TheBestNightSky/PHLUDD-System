@@ -15,7 +15,7 @@ GPIO.setmode(GPIO.BCM)
 GPIO.setup(GPIO_ALARM, GPIO.OUT)
 GPIO.setup(GPIO_SENSOR_ENABLE, GPIO.OUT)
 GPIO.setup(GPIO_OCP_RESET, GPIO.OUT)
-GPIO.setup(GPIO_OCP_FLAG, GPIO.IN)
+GPIO.setup(GPIO_OCP_FLAG, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
 
 MCP.newADC()
 
@@ -183,7 +183,7 @@ class Phludd:
 
     def ocp_reset(self):
         GPIO.output(GPIO_OCP_RESET, GPIO.HIGH)
-        time.sleep(0.5)
+        time.sleep(0.1)
         GPIO.output(GPIO_OCP_RESET, GPIO.LOW)
 
     def read_sensors(self):
