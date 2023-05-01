@@ -146,7 +146,7 @@ def initialize():
     ###### PHLUDD Hardware ######
     phludd = hardware.Phludd(screen, main_ui_bg, iris, config)
     phludd.init()
-    if not phludd.read_ocp_state:
+    if not phludd.read_ocp_state():
         phludd.ocp_reset()
 
     running = True
