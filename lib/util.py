@@ -3,6 +3,8 @@ import pygame
 import time
 from PIL import Image
 import threading
+import psutil
+import subprocess
 ## Util ##
 
 
@@ -31,6 +33,26 @@ class NameSpace:
 
 ## Makes things ugly on the inside so they can be pretty on the outside :3 
 ##########################################
+
+def Is_Process(processName):
+    '''
+    Check if there is any running process that contains the given name processName.
+    '''
+    #Iterate over the all the running process
+    for proc in psutil.process_iter():
+        try:
+            # Check if process name contains the given name string.
+            if processName.lower() in proc.name().lower():
+                return True
+        except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+            pass
+    return False;
+
+def Watchdog():
+    if not Is_Process("phludd-watchdog"):
+        subprocess.run("python", "watchdog.py")
+    else:
+        pass
 
 
 class Dict2Class(object):

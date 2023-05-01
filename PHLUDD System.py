@@ -2,6 +2,7 @@ import math
 import pygame, sys
 import time
 import threading
+import subprocess
 
 pygame.init()
 
@@ -11,6 +12,8 @@ import lib.user_interface as ui
 import lib.util as util
 import lib.gmail_handle
 import web.server as Server
+
+#start watchdog process
 
 
 def debug(config : Configuration):
@@ -143,6 +146,8 @@ def initialize():
     ###### PHLUDD Hardware ######
     phludd = hardware.Phludd(screen, main_ui_bg, iris, config)
     phludd.init()
+    if not phludd.read_ocp_state:
+        phludd.ocp_reset()
 
     running = True
 

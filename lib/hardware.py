@@ -7,11 +7,14 @@ from lib.ADC import MCP
 ## GPIO / ADC setup ##
 GPIO_ALARM = 18
 GPIO_SENSOR_ENABLE = 17
-
+GPIO_OCP_RESET = 23 #!!!PULSE ONLY DO NOT LEAVE HIGH OR RELAY WILL OCILATE IN SHORT CIRCUIT CONDITION!!!
+GPIO_OCP_FLAG = 24 #HIGH = NORMAL, LOW = TRIGGERED
 GPIO.setmode(GPIO.BCM)
 
 GPIO.setup(GPIO_ALARM, GPIO.OUT)
 GPIO.setup(GPIO_SENSOR_ENABLE, GPIO.OUT)
+GPIO.setup(GPIO_OCP_RESET, GPIO.OUT)
+GPIO.setup(GPIO_OCP_FLAG, GPIO.IN)
 
 MCP.newADC()
 
@@ -44,6 +47,7 @@ class Phludd:
         self.STATE_SENSING = 1
         self.STATE_LOW_BAT = 2
         self.STATE_ALARM = 3
+        self.STATE_OCP_ALARM = 4
 
         # local stuff
         self.state = self.STATE_IDLE
@@ -173,7 +177,16 @@ class Phludd:
         self.prev_state = self.state + 0
         self.state = state
 
+    def read_ocp_state(self):
+        return GPIO.input(GPIO_OCP_FLAG)
+
+    def ocp_reset(self):
+        GPIO.output(GPIO_OCP_RESET, GPIO.HIGH)
+        pass
+        GPIO.output(GPIO_OCP_RESET, GPIO.LOW)
+
     def read_sensors(self):
+
         if self.state == self.STATE_IDLE or self.state == self.STATE_LOW_BAT:
             self.setState(self.STATE_SENSING)
             GPIO.output(GPIO_SENSOR_ENABLE, GPIO.HIGH)
