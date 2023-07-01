@@ -3,47 +3,47 @@
         "S0": {
             "enable": true,
             "pos": {
-                "x": 229,
-                "y": 374
+                "x": 186,
+                "y": 308
             }
         },
         "S1": {
             "enable": true,
             "pos": {
-                "x": 591,
-                "y": 25
+                "x": 486,
+                "y": 15
             }
         },
         "S2": {
-            "enable": true,
+            "enable": false,
             "pos": {
-                "x": 227,
-                "y": 24
+                "x": 315,
+                "y": 35
             }
         },
         "S3": {
-            "enable": true,
+            "enable": false,
             "pos": {
                 "x": 868,
                 "y": 672
             }
         },
         "S4": {
-            "enable": true,
+            "enable": false,
             "pos": {
                 "x": 939,
                 "y": 318
             }
         },
         "S5": {
-            "enable": true,
+            "enable": false,
             "pos": {
                 "x": 53,
                 "y": 673
             }
         },
         "S6": {
-            "enable": true,
+            "enable": false,
             "pos": {
                 "x": 945,
                 "y": 16
@@ -57,7 +57,7 @@
         "Recipients": []
     },
     "Display": {
-        "width": 1280,
-        "height": 720
+        "width": 1024,
+        "height": 600
     }
 }

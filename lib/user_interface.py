@@ -64,7 +64,10 @@ class Iris:
         self.X = 0
         self.Y = 0
         self.surface = surface
-        self.looklimit = Coords(133, 100)
+        self.looklimit = Coords(
+            int(config.PHLUDD.Display.resolution[0] * 0.10390625),
+            int(config.PHLUDD.Display.resolution[1] * 0.13888889)
+        )
         self.hold_time_range = [3000,5000]
         self.path = []
         
@@ -193,16 +196,17 @@ class Weather_Widget():
         self.surface = surface
         self.x = x
         self.y = y
-        self.img = pygame.Surface((300, 178))
-        self.border = Rect(self.img, 0, 0, 300, 178, color=(255,0,0), border_width=2)
+        self.buffer = pygame.Surface((300, 178))
+        self.scale = (int(self.config.PHLUDD.Display.resolution[0] * 0.234375), int(self.config.PHLUDD.Display.resolution[1] * 0.24722222))
+        self.border = Rect(self.buffer, 0, 0, 300, 178, color=(255,0,0), border_width=2)
         self.icon_pos = (3,40)
         self.icon = None
 
-        self.city = Text(self.img, 20, 5, color=(255,0,0), font=pygame.font.Font("assets/fonts/DejaVuSerifCondensed-Bold.ttf", 31), text="<Error>")
-        self.temp = Text(self.img, 131, 35, font=pygame.font.Font("assets/fonts/DejaVuSerifCondensed-Bold.ttf", 50), text="<Error>°ᶜ")
-        self.chill = Text(self.img, 131, 85, font=pygame.font.Font("assets/fonts/DejaVuSerifCondensed-Bold.ttf", 16), text="feels like: <Error>°ᶜ")
-        self.cond = Text(self.img, 131, 105, font=pygame.font.Font("assets/fonts/DejaVuSerifCondensed-Bold.ttf", 35), text="<Error>")
-        self.desc = Text(self.img, 131, 137, font=pygame.font.Font("assets/fonts/DejaVuSerifCondensed-Bold.ttf", 20), text="<Error>")
+        self.city = Text(self.buffer, 20, 5, color=(255,0,0), font=pygame.font.Font("assets/fonts/DejaVuSerifCondensed-Bold.ttf", 31), text="<Error>")
+        self.temp = Text(self.buffer, 131, 35, font=pygame.font.Font("assets/fonts/DejaVuSerifCondensed-Bold.ttf", 50), text="<Error>°ᶜ")
+        self.chill = Text(self.buffer, 131, 85, font=pygame.font.Font("assets/fonts/DejaVuSerifCondensed-Bold.ttf", 16), text="feels like: <Error>°ᶜ")
+        self.cond = Text(self.buffer, 131, 105, font=pygame.font.Font("assets/fonts/DejaVuSerifCondensed-Bold.ttf", 35), text="<Error>")
+        self.desc = Text(self.buffer, 131, 137, font=pygame.font.Font("assets/fonts/DejaVuSerifCondensed-Bold.ttf", 20), text="<Error>")
         
 
     def update(self):
@@ -241,9 +245,9 @@ class Weather_Widget():
             else:
                 self.loc_valid = False
 
-        self.img.fill((0,0,0,0))
+        self.buffer.fill((0,0,0,0))
 
-        self.img.blit(self.icon, self.icon_pos)
+        self.buffer.blit(self.icon, self.icon_pos)
         self.temp.draw()
         self.chill.draw()
         self.cond.draw()
@@ -251,7 +255,9 @@ class Weather_Widget():
         self.city.draw()
 
         self.border.draw()
-                
+
+        self.img = pygame.transform.scale(self.buffer, self.scale)
+
         pygame.time.set_timer(pygame.event.Event(self.update_event, msg="weather_update", callback=self.update), 300000)
 
         if not success:

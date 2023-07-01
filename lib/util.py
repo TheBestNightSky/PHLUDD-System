@@ -84,6 +84,16 @@ class Coords:
         self.y = y
         self.z = z
 
+        self._ox = x
+        self._oy = y
+        self._oz = z
+
+    def reset(self):
+        self.x = self._ox
+        self.y = self._oy
+        self.z = self._oz
+
+
 class Timer:
     def __init__(self):
         self.time = time.time()
@@ -167,12 +177,12 @@ class Button:
 
 
 class SliderToggle(Button):
-    def __init__(self, surface, x, y, true_frame, file, start_state=False, text="<Text>", config=None, active=False):
+    def __init__(self, surface, x, y, true_frame, file, start_state=False, text="<Text>", font=pygame.font.SysFont(None, 48), config=None, active=False):
         self.surface = surface
         self.x = x
         self.y = y
         self.true_frame = true_frame
-        self.lable = Text(self.surface, self.x, self.y, text=text)
+        self.lable = Text(self.surface, self.x, self.y, text=text, font=font)
         self.gif = GIF(self.surface, 0, 0, file)
         self.gif.x, self.gif.y = self.x + self.lable.img.get_width(), self.y - (self.gif.Img.get_height() // 2.5)
 
@@ -213,6 +223,10 @@ class SliderToggle(Button):
         self.gif.draw()
         if self.gif.idx == self.true_frame or self.gif.idx == 0 and self.gif.update_event is not None:
             self.gif.halt()
+
+    def scale(self, newX, newY):
+        self.gif.transform.scale(newX, newY)
+        self.gif.x, self.gif.y = self.x + self.lable.img.get_width(), self.y - (self.gif.Img.get_height() // 2.5)
 
     def clicked(self, pos):
         x, y = pos
@@ -339,7 +353,7 @@ class GIF:
 
                     for i in range(0, len(GIF.cache[self.filename])):
                         GIF.cache[self.filename + f" Scaled: {newX}x{newY}"].append( (pygame.transform.scale(GIF.cache[self.filename][i][0], (newX, newY)), GIF.cache[self.filename][i][1]))
-            
+            self.Img, delay = GIF.cache[self.cache_id][self.idx]
 
     def draw(self):
         self.surface.blit(self.Img, (self.x, self.y))

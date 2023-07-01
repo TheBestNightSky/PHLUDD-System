@@ -109,7 +109,7 @@ class Phludd:
             self.alarm_lbat()
 
         elif event.type == self.phludd_alarm_clear_event:
-            self.iris.looklimit.x, self.iris.looklimit.y = 133, 100
+            self.iris.looklimit.reset()
             self.iris.hold_time_range = [3000,5000]
             self.iris.path = []
             self.iris.idle_look()

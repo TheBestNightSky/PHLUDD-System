@@ -27,6 +27,9 @@ debug(config)
 
 #Create Screen
 if config.fullscreen:
+    winfo = pygame.display.Info()
+    res = (winfo.current_w, winfo.current_h)
+    config.PHLUDD.Display.resolution = res
     screen = pygame.display.set_mode(config.PHLUDD.Display.resolution, pygame.FULLSCREEN)
 else:
     screen = pygame.display.set_mode(config.PHLUDD.Display.resolution)
@@ -40,8 +43,8 @@ pygame.display.set_icon(icon)
 loading_bg = pygame.image.load('assets/phludd.png')
 loading_bg = pygame.transform.scale(loading_bg, config.PHLUDD.Display.resolution)
 
-spinner = util.GIF(screen, 555, 540, "assets/807.gif")
-spinner.transform.scale(170,170)
+spinner = util.GIF(screen, int(config.PHLUDD.Display.resolution[0] * 0.43359375), int(config.PHLUDD.Display.resolution[1] * 0.75), "assets/807.gif")
+spinner.transform.scale( int(config.PHLUDD.Display.resolution[1] * 0.23611111), int(config.PHLUDD.Display.resolution[1] * 0.23611111) )
 
 running = False
 
@@ -101,36 +104,114 @@ def initialize():
     main_ui_bg = ui.BackGround(screen, bgImg, (32,32,32))
 
     ## Weather Widget ##
-    weather = ui.Weather_Widget(screen, 10, 532, config)
+    weather = ui.Weather_Widget(
+        screen,
+        int(config.PHLUDD.Display.resolution[0] * 0.0078125),
+        int(config.PHLUDD.Display.resolution[1] * 0.73888889),
+        config
+    )
     weather.update()
 
     ## Status Display ##
-    status = util.Text(screen, 120,30, font=pygame.font.Font("assets/fonts/Rounded Elegance.ttf", 30), text="Status:    Idle")
+    status = util.Text(
+        screen,
+        int(config.PHLUDD.Display.resolution[0] * 0.09375),
+        int(config.PHLUDD.Display.resolution[1] * 0.041666667),
+        font=pygame.font.Font("assets/fonts/Rounded Elegance.ttf", int(config.PHLUDD.Display.resolution[1] * 0.04166667)),
+        text="Status:    Idle")
 
     #### SETTINGS MENU ####
 
     ## Setings Icon ##
     settings_icon = pygame.image.load('assets/settings_icon.png')
-    SettingsButton = util.Button(screen, 1120, 10, settings_icon)
+    settings_icon = pygame.transform.scale(
+        settings_icon,
+        (
+            int(config.PHLUDD.Display.resolution[0] * 0.1171875),
+            int(config.PHLUDD.Display.resolution[0] * 0.1171875)
+        )
+    )
+    SettingsButton = util.Button(
+        screen,
+        int(config.PHLUDD.Display.resolution[0] * 0.875),
+        int(config.PHLUDD.Display.resolution[1] * 0.01388889),
+        settings_icon
+    )
 
     ## Toggle Buttons ##
     SensorToggleButtons = []
-    y = 100
+    x = int(config.PHLUDD.Display.resolution[0] * 0.078125)
+    y = int(config.PHLUDD.Display.resolution[1] * 0.13888889)
+    inc = int(config.PHLUDD.Display.resolution[1] * 0.06944444)
     for sensor in sensor_array:
-        SensorToggleButtons.append(util.SliderToggle(screen, 100,y, 46, 'assets/toggle-button.gif', config=sensor_array[sensor_array.index(sensor)], text=f"Sensor {sensor_array.index(sensor)}: "))
-        y += 50
+        SensorToggleButtons.append(
+            util.SliderToggle(
+                screen,
+                x,
+                y,
+                46,
+                'assets/toggle-button.gif',
+                config=sensor_array[sensor_array.index(sensor)],
+                text=f"Sensor {sensor_array.index(sensor)}: ",
+                font=pygame.font.SysFont(None, int(config.PHLUDD.Display.resolution[1] * 0.06666667))
+            )
+        )
+        y += inc
 
-    EmailToggleButton = util.SliderToggle(screen, 500, 100, 46, 'assets/toggle-button.gif', config=config.PHLUDD.Email, text=f"Enabled Email Notifications: ")
+    for toggle in SensorToggleButtons:
+        toggle.scale(
+            int(config.PHLUDD.Display.resolution[1] * 0.20833333),
+            int(config.PHLUDD.Display.resolution[1] * 0.20833333)
+        )
+
+    EmailToggleButton = util.SliderToggle(
+        screen,
+        int(config.PHLUDD.Display.resolution[0] * 0.390625),
+        int(config.PHLUDD.Display.resolution[1] * 0.13888889),
+        46,
+        'assets/toggle-button.gif',
+        config=config.PHLUDD.Email,
+        text=f"Enabled Email Notifications: ",
+        font=pygame.font.SysFont(None, int(config.PHLUDD.Display.resolution[1] * 0.06666667))
+    )
+    EmailToggleButton.scale(
+        int(config.PHLUDD.Display.resolution[1] * 0.20833333),
+        int(config.PHLUDD.Display.resolution[1] * 0.20833333)
+    )
 
     #### MAP MENU ####
 
     ## Map Icon ##
     map_icon = pygame.image.load('assets/map_icon.png')
-    MapButton = util.Button(screen, 1120, 170, map_icon)
+    map_icon = pygame.transform.scale(
+        map_icon,
+        (
+            int(config.PHLUDD.Display.resolution[0] * 0.1171875),
+            int(config.PHLUDD.Display.resolution[0] * 0.1171875)
+        )
+    )
+    MapButton = util.Button(
+        screen,
+        int(config.PHLUDD.Display.resolution[0] * 0.875),
+        int(config.PHLUDD.Display.resolution[1] * 0.23611111),
+        map_icon
+    )
 
     ## Exit Icon ##
     exit_icon = pygame.image.load('assets/x.png')
-    ExitButton = util.Button(screen, 1206, 10, exit_icon)
+    exit_icon = pygame.transform.scale(
+        exit_icon,
+        (
+            int(config.PHLUDD.Display.resolution[1] * 0.08888889),
+            int(config.PHLUDD.Display.resolution[1] * 0.08888889)
+        )
+    )
+    ExitButton = util.Button(
+        screen,
+        int(config.PHLUDD.Display.resolution[0] * 0.9421875),
+        int(config.PHLUDD.Display.resolution[1] * 0.01388889),
+        exit_icon
+    )
 
     ## Sensor Icons ##
     sensor_icon = pygame.image.load('assets/target.png')
@@ -140,6 +221,13 @@ def initialize():
 
     ## Map ##
     map_img = pygame.image.load('assets/map/map.png')
+    map_img = pygame.transform.scale(
+        map_img,
+        (
+            int(config.PHLUDD.Display.resolution[1] * (16/9)),
+            int(config.PHLUDD.Display.resolution[1])
+        )
+    )
     ###### END UI #######
 
 
