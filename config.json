@@ -49,6 +49,10 @@
                 "y": 16
             }
         },
+        "BatteryMonitor": {
+            "enable": false,
+            "lbat_threshold": 2.164
+        },
         "poll_rate": 30,
         "voltage_threshold": 0.5
     },

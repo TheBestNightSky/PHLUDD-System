@@ -94,7 +94,7 @@ class Phludd:
             self.state = self.STATE_ALARM
             self.alarm_norm()
 
-        elif event.type == self.phludd_bat_check_event:
+        elif event.type == self.phludd_bat_check_event and self.config.PHLUDD.Sensors.BatteryMonitor.enable:
             self.bat_data.append((MCP.read_voltage(7)/(5.9/(10+5.9)))/0.43)
             if self.state != self.STATE_LOW_BAT and self.state != self.STATE_SENSING:
                 if len(self.bat_data) == 200 and sum(self.bat_data)/len(self.bat_data) <= 7:
@@ -119,9 +119,10 @@ class Phludd:
 
     def init(self):
         pygame.time.set_timer(self.phludd_sensor_read_event, self.poll_rate)
-        pygame.time.set_timer(self.phludd_bat_check_event, 500)
+        if self.config.PHLUDD.Sensors.BatteryMonitor.enable:
+            pygame.time.set_timer(self.phludd_bat_check_event, 500)
 
-        
+
     def alarm_handle(self, high_interval, low_interval, cycles=0):
         if self.state == self.STATE_ALARM or self.state == self.STATE_LOW_BAT:
             if not self.alarm_state:

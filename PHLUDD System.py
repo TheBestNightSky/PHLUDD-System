@@ -73,6 +73,7 @@ def initialize():
     global status
     global SettingsButton
     global SensorToggleButtons
+    global BatMonToggleButton
     global EmailToggleButton
     global MapButton
     global ExitButton
@@ -139,6 +140,7 @@ def initialize():
     )
 
     ## Toggle Buttons ##
+    button_font = pygame.font.SysFont(None, int(config.PHLUDD.Display.resolution[1] * 0.06666667))
     SensorToggleButtons = []
     x = int(config.PHLUDD.Display.resolution[0] * 0.078125)
     y = int(config.PHLUDD.Display.resolution[1] * 0.13888889)
@@ -153,7 +155,7 @@ def initialize():
                 'assets/toggle-button.gif',
                 config=sensor_array[sensor_array.index(sensor)],
                 text=f"Sensor {sensor_array.index(sensor)}: ",
-                font=pygame.font.SysFont(None, int(config.PHLUDD.Display.resolution[1] * 0.06666667))
+                font=button_font
             )
         )
         y += inc
@@ -164,6 +166,22 @@ def initialize():
             int(config.PHLUDD.Display.resolution[1] * 0.20833333)
         )
 
+    y += inc
+    BatMonToggleButton = util.SliderToggle(
+        screen,
+        x,
+        y,
+        46,
+        'assets/toggle-button.gif',
+        config=config.PHLUDD.Sensors.BatteryMonitor,
+        text=f"Enable Backup Battery Monitoring: ",
+        font=button_font
+    )
+    BatMonToggleButton.scale(
+        int(config.PHLUDD.Display.resolution[1] * 0.20833333),
+        int(config.PHLUDD.Display.resolution[1] * 0.20833333)
+    )
+
     EmailToggleButton = util.SliderToggle(
         screen,
         int(config.PHLUDD.Display.resolution[0] * 0.390625),
@@ -172,7 +190,7 @@ def initialize():
         'assets/toggle-button.gif',
         config=config.PHLUDD.Email,
         text=f"Enabled Email Notifications: ",
-        font=pygame.font.SysFont(None, int(config.PHLUDD.Display.resolution[1] * 0.06666667))
+        font=button_font
     )
     EmailToggleButton.scale(
         int(config.PHLUDD.Display.resolution[1] * 0.20833333),
@@ -383,6 +401,8 @@ def settings():
     settings_changed = False
     for button in SensorToggleButtons:
         button.active = True
+    BatMonToggleButton.active = True
+    EmailToggleButton.active = True
     while running:
         # Event Processing
         for event in pygame.event.get():
@@ -407,8 +427,18 @@ def settings():
                         settings_changed = False
                     for button in SensorToggleButtons:
                         button.active = False
+                    BatMonToggleButton.active = False
+                    EmailToggleButton.active = False
                     iris.idle_look()
                     return
+
+                elif BatMonToggleButton.clicked(event.pos):
+                    BatMonToggleButton.Toggle()
+                    if BatMonToggleButton.state:
+                        pygame.time.set_timer(phludd.phludd_bat_check_event, 500)
+                    else:
+                        pygame.time.set_timer(phludd.phludd_bat_check_event, 0)
+                    settings_changed = True
 
                 elif EmailToggleButton.clicked(event.pos):
                     EmailToggleButton.Toggle()
@@ -456,6 +486,8 @@ def settings():
         for Toggle in SensorToggleButtons:
             Toggle.draw()
 
+        BatMonToggleButton.draw()
+
         EmailToggleButton.draw()
 
         ExitButton.draw()
@@ -463,6 +495,11 @@ def settings():
 
 
 def main():
+
+    def bg_cleanup():
+        if phludd.state == phludd.STATE_IDLE:
+            main_ui_bg.setColor((32,32,32))
+
     while running:
 
         # Event Processing
@@ -491,10 +528,13 @@ def main():
 
             ## Mouse / Touch Events ##
             elif event.type == pygame.MOUSEBUTTONUP:
-                if MapButton.clicked(event.pos):
-                    map()
-                elif SettingsButton.clicked(event.pos):
-                    settings()
+                with util.CleanUp(bg_cleanup) as manager:
+                    if MapButton.clicked(event.pos):
+                        map()
+                    elif SettingsButton.clicked(event.pos):
+                        settings()
+                    else:
+                        manager.cancel()
             
             ## UI Events ##
             elif event.type == iris.idle_look_event:

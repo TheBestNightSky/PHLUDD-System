@@ -265,5 +265,11 @@ class Weather_Widget():
             if type(e) == requests.exceptions.ConnectionError:
                 pygame.time.set_timer(pygame.event.Event(self.update_event, msg="weather_update", callback=self.update), 5000)
 
+    def clicked(self, pos):
+        x, y = pos
+        if self.x < x < self.x + self.img.get_width() and self.y < y < self.y + self.img.get_height():
+            return True
+        return False
+
     def draw(self):
         self.surface.blit(self.img, (self.x, self.y))

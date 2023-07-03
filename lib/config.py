@@ -61,6 +61,10 @@ class Configuration:
                     "y" : 192
                     }
                 },
+            "BatteryMonitor": {
+                "enable":  True,
+                "lbat_threshold" : 2.164
+            },
             "poll_rate": 600,
             "voltage_threshold": 0.5
             },
