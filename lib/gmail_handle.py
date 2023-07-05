@@ -15,6 +15,10 @@ from socket import gaierror
 import httplib2.error
 import traceback
 
+import lib.logging as Logging
+
+Log = Logging.Log("logs/phludd_log.log")
+
 class Gmail:
 
     def __init__(self):
@@ -58,8 +62,8 @@ class Gmail:
             self.authorized = True
             return creds
         except (google.auth.exceptions.TransportError, oauthlib.oauth2.rfc6749.errors.AccessDeniedError) as error:
-            print(f"An error occured in gmail_handle.py: {type(error)} | {error}")
-            print(''.join(traceback.format_tb(error.__traceback__)))
+            Log.log(Log.ERROR, f"An error occured in gmail_handle.py: {type(error)} | {error}")
+            Log.log(Log.ERROR, ''.join(traceback.format_tb(error.__traceback__)))
             self._lasterror = error
             
 
@@ -71,8 +75,8 @@ class Gmail:
                 self.sender = profile.get("emailAddress")
                 
         except (HttpError, httplib2.error.ServerNotFoundError, socket.gaierror) as error:
-            print(F'An error occurred: {type(error)} | {error}')
-            print(''.join(traceback.format_tb(error.__traceback__)))
+            Log.log(Log.ERROR, F'An error occurred: {type(error)} | {error}')
+            Log.log(Log.ERROR, ''.join(traceback.format_tb(error.__traceback__)))
             send_message = None
             self._lasterror = error
             
@@ -105,24 +109,12 @@ class Gmail:
             # pylint: disable=E1101
             send_message = (self.service.users().messages().send
                             (userId="me", body=create_message).execute())
-            print(F'Message sent! - Message Id: {send_message["id"]}')
+            Log.log(Log.INFO, F'Gmail Message sent! - Message Id: {send_message["id"]}')
             
         except (HttpError, ConnectionResetError)  as error:
-            print(F'An error occurred: {type(error)} | {error}')
-            print(''.join(traceback.format_tb(error.__traceback__)))
+            Log.log(Log.ERROR, F'An error occurred: {type(error)} | {error}')
+            Log.log(Log.ERROR, ''.join(traceback.format_tb(error.__traceback__)))
             send_message = None
             self._lasterror = error
             
         return send_message
-    
-    
-        
-
-
-if __name__ == '__main__':
-    try:
-        test = Gmail()
-    except Exception as e:
-        print(f"{type(e)} | {e}")
-    msg = "this is a test of the gmail class"
-    #test.send_message(msg, "zwhite@phludd-systems.com, skye.knightingale@gmail.com")

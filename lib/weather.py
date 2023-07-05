@@ -4,6 +4,10 @@ from lib.location import Location
 from lib.exceptions import apiException
 import traceback
 
+import lib.logging as Logging
+
+Log = Logging.Log("logs/phludd_log.log")
+
 class Weather:
     def __init__(self, api_key):
         self.weather_key = api_key
@@ -59,13 +63,13 @@ class _Current:
             else:
                 raise apiException(response['cod'], response['message'])
         except requests.exceptions.RequestException as error:
-            print(F'An error occurred in weather.py: {type(error)} | {error}')
-            print(''.join(traceback.format_tb(error.__traceback__)))
+            Log.log(Log.ERROR, F'An error occurred in weather.py: {type(error)} | {error}')
+            Log.log(Log.ERROR, ''.join(traceback.format_tb(error.__traceback__)))
             self.parent._lastException = error
             success = False
         except apiException as error:
-            print(F'An error occurred in weather.py: {type(error)} {error.cod} | {error}')
-            print(''.join(traceback.format_tb(error.__traceback__)))
+            Log.log(Log.ERROR, F'An error occurred in weather.py: {type(error)} {error.cod} | {error}')
+            Log.log(Log.ERROR, ''.join(traceback.format_tb(error.__traceback__)))
             self.parent._lastException = error
             success = False
         return success
@@ -89,18 +93,17 @@ class _Forcast:
                 success = True
                 for i in response['list']:
                     if i['dt_txt'][:10] == '2023-03-08':
-                        print(i)
-                        print("\n#########################################################\n")
+                        Log.log(Log.DEBUG, i)
             else:
                 raise apiException(response['cod'], response['message'])
         except requests.exceptions.RequestException as error:
-            print(F'An error occurred in weather.py: {type(error)} | {error}')
-            print(''.join(traceback.format_tb(error.__traceback__)))
+            Log.log(Log.ERROR, F'An error occurred in weather.py: {type(error)} | {error}')
+            Log.log(Log.ERROR, ''.join(traceback.format_tb(error.__traceback__)))
             self.parent._lastException = error
             success = False
         except apiException as error:
-            print(F'An error occurred in weather.py: {type(error)} {error.cod} | {error}')
-            print(''.join(traceback.format_tb(error.__traceback__)))
+            Log.log(Log.ERROR, F'An error occurred in weather.py: {type(error)} {error.cod} | {error}')
+            Log.log(Log.ERROR, ''.join(traceback.format_tb(error.__traceback__)))
             self.parent._lastException = error
             success = False
         return success

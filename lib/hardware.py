@@ -2,8 +2,12 @@ import random
 import pygame
 import collections
 import time
+import lib.logging as Logging
 from lib.RPi import GPIO
 from lib.ADC import MCP
+
+Log = Logging.Log("logs/phludd_log.log")
+
 
 ## GPIO / ADC setup ##
 GPIO_ALARM = 18
@@ -129,17 +133,17 @@ class Phludd:
                 self.alarm_state = True
                 if self.state == self.STATE_ALARM: self.ui_bg.setColor((255, 0, 0))
                 GPIO.output(GPIO_ALARM, GPIO.HIGH)
-                print("Beep!")
+                Log.log(Log.DEBUG, "Beep!")
                 pygame.time.set_timer(self.phludd_alarm_event, high_interval, 1)
             else:
                 self.alarm_state = False
                 if self.state == self.STATE_ALARM: self.ui_bg.setColor((32, 32, 32))
                 self.cycle += 1
                 GPIO.output(GPIO_ALARM, GPIO.LOW)
-                print("not Beep!")
+                Log.log(Log.DEBUG, "not Beep!")
                 pygame.time.set_timer(self.phludd_alarm_event, low_interval, 1)
             if cycles != 0 and self.cycle == cycles:
-                print("Alarm Cycle End")
+                Log.log(Log.DEBUG, "Alarm Cycle End")
                 pygame.time.set_timer(self.phludd_alarm_event, 0)
                 self.alarm_state = False
                 GPIO.output(GPIO_ALARM, GPIO.LOW)

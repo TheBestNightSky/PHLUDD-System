@@ -1,7 +1,6 @@
 from email.headerregistry import Address
 from genericpath import isfile
 import socket
-from ssl import SOL_SOCKET
 import threading
 import json
 import sqlite3
@@ -23,6 +22,9 @@ from Crypto.Random import get_random_bytes
 
 from web.protocol import *
 
+import lib.logging as Logging
+
+Log = Logging.Log("logs/phludd_log.log")
 #server constants
 PORT = 5050
 
@@ -102,16 +104,16 @@ class Command:
                 else:
                     return "Success"
             else:
-                ThreadSafe.print(f"[Warning] client ({session[0]}) tried to run a command they lack permissions for!")
+                Log.log(Log.WARNING, f"client ({session[0]}) tried to run a command they lack permissions for!")
                 return Command.Error("Client lacks permission to run this command!")
 
         except ValueError as e:
-            ThreadSafe.print(f"[Warning] client ({session[0]}) sent an invalid command!")
+            Log.log(Log.WARNING, f"[Warning] client ({session[0]}) sent an invalid command!")
             return Command.Error("Client sent an invalid command!")
 
         except TypeError as e:
-            ThreadSafe.print(f"[Warning] client ({session[0]}) sent a valid command but the arguments did not match!")
-            print("    ", e)
+            Log.log(Log.WARNING, f"client ({session[0]}) sent a valid command but the arguments did not match!")
+            Log.log(Log.ERROR, e)
             return Command.Error("Client sent a valid command but the arguments did not match!")
 
 #### BUILT IN COMMAND DEFINITIONS ####
@@ -137,7 +139,7 @@ def cmd_help(command=None):
             return Command.Error("help <*command>: Command not found!")
 
     string += "---END HELP---"
-    print(string)
+    Log.log(Log.INFO, string)
     return string
 
 Command.register("help", 0, cmd_help, usage, description)
@@ -148,7 +150,7 @@ description = "Prints the given string to the server console :D"
 
 def testCmd(*string):
     text = " ".join(string)
-    print(f"[ECHO] {text}")
+    Log.log(Log.ECHO, text)
     return f"[ECHO] {text}"
 
 Command.register("echo", 0, testCmd, usage, description)
@@ -158,31 +160,31 @@ usage = "createAccount <username> <email> <password> <access_level>"
 description = "Creates a new account with information provided (ADMIN LEVEL COMMAND)"
 
 def create_account(username, email, password, access_level):
-    print(f"[INFO] Creating account ({username}) with access level {access_level}")
-    print("[INFO] Connecting to database...")
+    Log.log(Log.INFO, f"Creating account ({username}) with access level {access_level}")
+    Log.log(Log.INFO, "Connecting to database...")
     conn = sqlite3.connect(LOGIN_DB)
     cur = conn.cursor()
 
-    print("[INFO] Checking if account already exists...")
+    Log.log(Log.INFO, "Checking if account already exists...")
     cur.execute("SELECT * FROM users WHERE username=?", (username,))
     res = cur.fetchone()
     if res is None:
-        print("[INFO] Generating salt...")
+        Log.log(Log.INFO, "Generating salt...")
         salt = get_random_bytes(16)
-        print("[INFO] Calculating password hash...")
+        Log.log(Log.INFO, "Calculating password hash...")
         pwhash = b64encode(hashlib.sha256(password.encode(FORMAT)).digest())
         bcrypt_hash = bcrypt(pwhash, 15, salt=salt)
 
         #load forum data into database
-        print("[INFO] Inserting data into database...")
+        Log.log(Log.INFO, "Inserting data into database...")
         cur.execute("INSERT INTO users VALUES(NULL, ?, ?, ?, ?)", (access_level, username, email, bcrypt_hash))
 
-        print("[INFO] Commiting changes to database!")
+        Log.log(Log.INFO, "Commiting changes to database!")
         conn.commit()
-        print(f"[INFO] Account ({username}) created succesfully!")
+        Log.log(Log.INFO, f"Account ({username}) created succesfully!")
         return f"[INFO] Account ({username}) created succesfully!"
     else:
-        print(f"[WARNING] Account ({username}) Already exists!")
+        Log.log(Log.WARNING, f"Account ({username}) Already exists!")
         return Command.Error(f"Account ({username}) Already exists!")
 
 Command.register("createAccount", 10, create_account, usage, description)
@@ -191,31 +193,31 @@ Command.register("createAccount", 10, create_account, usage, description)
 usage = "deleteAccount <username> <password>"
 description = "Deletes the specified account from the login database if the password matches"
 def delete_account(username, password):
-    print(f"[INFO] Attempting to delete account ({username})")
-    print(f"[INFO] Connecting to database...")
+    Log.log(Log.INFO, f"Attempting to delete account ({username})")
+    Log.log(Log.INFO, f"Connecting to database...")
     conn = sqlite3.connect(LOGIN_DB)
     cur = conn.cursor()
-    print(f"[INFO] Searching for user ({username})")
+    Log.log(Log.INFO, f"Searching for user ({username})")
     cur.execute("SELECT * FROM users WHERE username=?", (username,))
     res = cur.fetchone()
     try:
         if res is not None:
             id, access_level, username, email, psw = res
-            print(f"[INFO] Validating password...")
+            Log.log(Log.INFO, f"Validating password...")
             pwhash = b64encode(hashlib.sha256(password.encode(FORMAT)).digest())
             bcrypt_check(pwhash, psw) #raises an error if result dosnt match
 
-            print(f"[INFO] Password verified, Deleting user ({username})")
+            Log.log(Log.INFO, f"Password verified, Deleting user ({username})")
             cur.execute("DELETE FROM users WHERE username=?", (username,))
 
-            print("[INFO] Commiting changes to database!")
+            Log.log(Log.INFO, "Commiting changes to database!")
             conn.commit()
-            print(f"[INFO] Account ({username}) deleted succesfully!")
+            Log.log(Log.INFO, f"Account ({username}) deleted succesfully!")
             return f"[INFO] Account ({username}) deleted succesfully!"
 
 
     except ValueError:
-        print(f"[WARNING] Failed to verify password for account deletion!")
+        Log.log(Log.WARNING, f"Failed to verify password for account deletion!")
         return Command.Error("Failed to verify password for account deletion!")
 
 Command.register("deleteAccount", 1, delete_account, usage, description)
@@ -237,12 +239,12 @@ def get_local_ip():
 
 def create_login_db():
     if not os.path.isfile(LOGIN_DB):
-        print("[WARNING] user database missing, creating new database...")
+        Log.log(Log.WARNING, "User database missing, creating new database...")
         conn = sqlite3.connect(LOGIN_DB)
         cur = conn.cursor()
-        print(f"[INFO] created database at {LOGIN_DB}")
+        Log.log(Log.INFO, f"Created database at {LOGIN_DB}")
 
-        print("[INFO] creating new table users...")
+        Log.log(Log.INFO, "Creating new table users...")
         cur.execute("""CREATE TABLE users (
             user_id INTEGER PRIMARY KEY,
             access_level INTEGER NOT NULL,
@@ -251,37 +253,37 @@ def create_login_db():
             password TEXT NOT NULL
             )""")
 
-        print("[INFO] please create the first admin level user")
+        Log.log(Log.INFO, "Please create the first admin level user")
         access_level = 10
-        username = input("[INPUT] please enter the admin username:\n")
+        username = Log.input("[INPUT] please enter the admin username:\n")
 
         email = ''
         while True:
-            email = input("[INPUT] please enter an email to use for this account:\n")
-            email_verify = input("[INPUT] enter the same email again to verify:\n")
+            email = Log.input("[INPUT] please enter an email to use for this account:\n")
+            email_verify = Log.input("[INPUT] enter the same email again to verify:\n")
             if email == email_verify:
                 break
-            print("[WARNING] Emails did not match, please try again!")
+            Log.log(Log.NOTICE, "Emails did not match, please try again!")
 
         password = ''
         while True:
-            password = getpass("[INPUT] enter the password to use for this account:\n")
-            pass_verify = getpass("[INPUT] enter the password again:\n")
+            password = Log.getpass("[INPUT] enter the password to use for this account:\n")
+            pass_verify = Log.getpass("[INPUT] enter the password again:\n")
             if password == pass_verify:
                 break
-            print("[WARNING] Passwords did not match, please try again!")
+            Log.log(Log.NOTICE, "Passwords did not match, please try again!")
 
-        print("[INFO] Generating salt...")
+        Log.log(Log.INFO, "Generating salt...")
         salt = get_random_bytes(16)
-        print("[INFO] Calculating password hash...")
+        Log.log(Log.INFO, "Calculating password hash...")
         pwhash = b64encode(hashlib.sha256(password.encode(FORMAT)).digest())
         bcrypt_hash = bcrypt(pwhash, 15, salt=salt)
 
         #load forum data into database
-        print("[INFO] Inserting data into database...")
+        Log.log(Log.INFO, "Inserting data into database...")
         cur.execute("INSERT INTO users VALUES(NULL, ?, ?, ?, ?)", (access_level, username, email, bcrypt_hash))
 
-        print("[INFO] Commiting changes to database!")
+        Log.log(Log.INFO, "Commiting changes to database!")
         conn.commit()
 
 
@@ -290,7 +292,7 @@ def client_handshake(connection, address):
     client_public = ""
     server_side_complete = False
     secure = False
-    ThreadSafe.print(f"[{address}] Attempting to connect, begining handshake!")
+    Log.log(Log.INFO, f"({address}) Attempting to connect, begining handshake!")
     try:
         while not secure:
             packed = recv_message(connection) if not server_side_complete else recv_encrypted_message(connection, RSAkey)
@@ -318,7 +320,7 @@ def client_handshake(connection, address):
 
                 elif header["type"] == HTYPE_HS_CONFIRM and server_side_complete:
                     if msg.decode(FORMAT) == "Confirm Handshake":
-                        ThreadSafe.print(f"[{address}] Hand shake successfull! client connection is now secure.")
+                        Log.log(Log.INFO, f"({address}) Hand shake successfull! client connection is now secure.")
                         secure = True
 
         if secure:
@@ -326,18 +328,18 @@ def client_handshake(connection, address):
             ConnectionList.set(idx, (connection, address, client_public) )
             handle_client(connection, address, client_public)
         else:
-            ThreadSafe.print(f"[{address}] Hand shake failed! Aborting client connection")
+            Log.log(Log.SECURITY, f"({address}) Hand shake failed! Aborting client connection")
             message = "Access Denied!"
             send_encrypted_message(connection, (HTYPE_HS_ACCESS_DENIED, server_id, server_auth), client_public, message)
             connection.close()
             ConnectionList.remove((connection, address))
     
     except ConnectionResetError as e:
-        ThreadSafe.print(f"[{address}] Diconnected without warning. (Client Connection Reset)")
+        Log.log(Log.WARNING, f"({address}) Diconnected without warning. (Client Connection Reset)")
         ConnectionList.remove((connection, address))
 
     except socket.timeout as e:
-        ThreadSafe.print(f"[{address}] Diconnected without warning. (Client Timed Out)")
+        Log.log(Log.WARNING, f"({address}) Diconnected without warning. (Client Timed Out)")
         ConnectionList.remove((connection, address))
 
 
@@ -353,7 +355,7 @@ def handle_client(connection, address, client_key):
                 header, dmsg = packed.values()
 
                 if header["type"] == HTYPE_DISCONNECT and dmsg.decode(FORMAT) == DISCONNECT:
-                    ThreadSafe.print(f"[{address}] Diconnected")
+                    Log.log(Log.INFO, f"({address}) Diconnected")
                     connected = False
                     ConnectionList.remove((connection, address, client_key))
 
@@ -364,7 +366,7 @@ def handle_client(connection, address, client_key):
                         pass
 
                 elif header["type"] == HTYPE_COMMAND:
-                    print(f"[{address}] client ({session[0]}) has sent a command, ({dmsg.decode(FORMAT)}) attempting to execute...")
+                    Log.log(Log.INFO, f"Client ({address} | {session[0]}) has sent a command, ({dmsg.decode(FORMAT)}) attempting to execute...")
                     split = dmsg.decode(FORMAT).split(" ")
                     cmd = split[0]
                     args = split[1:]
@@ -376,7 +378,7 @@ def handle_client(connection, address, client_key):
                         send_encrypted_message(connection, (HTYPE_COMMAND, server_id, server_auth), client_key, str(res))
 
                 elif header["type"] == HTYPE_JSON:
-                    print(f"[{address}] client has sent a json object, saving and waiting for further instruction...")
+                    Log.log(Log.INFO, f"({address}) client has sent a json object, saving and waiting for further instruction...")
                     last_json = json.loads(dmsg)
 
                 elif header["type"] == HTYPE_AUTHORIZE:
@@ -403,12 +405,12 @@ def handle_client(connection, address, client_key):
                             message = username.encode(FORMAT) + b":" + uuid_encode(session_uuid)
                             send_encrypted_message(connection, (HTYPE_AUTHORIZE, server_id, server_auth), client_key, message)
                         else:
-                            print("[WARNING] Login attempted with invalid username")
+                            Log.log(Log.SECURITY, f"({address}) Login attempted with invalid username!")
                             message = "Access Denied!"
                             send_encrypted_message(connection, (HTYPE_ACCESS_DENIED, server_id, server_auth), client_key, message)
 
                     except ValueError as e:
-                        print("[WARNING] Login attempted with invalid password")
+                        Log.log(Log.SECURITY, f"({address}) Login attempted with invalid password")
                         message = "Access Denied!"
                         send_encrypted_message(connection, (HTYPE_ACCESS_DENIED, server_id, server_auth), client_key, message)
                             
@@ -417,7 +419,7 @@ def handle_client(connection, address, client_key):
 
     except ConnectionResetError as e:
         connected = False
-        ThreadSafe.print(f"[{address}] Diconnected without warning. (Client Connection Reset)")
+        Log.log(Log.WARNING, f"({address}) Diconnected without warning. (Client Connection Reset)")
         ConnectionList.remove((connection, address, client_key))
         try:
             Authorized_IDs.remove(session)
@@ -426,7 +428,7 @@ def handle_client(connection, address, client_key):
 
     except socket.timeout as e:
         connected = False
-        ThreadSafe.print(f"[{address}] Diconnected without warning. (Client Timed Out)")
+        Log.log(Log.WARNING, f"({address}) Diconnected without warning. (Client Timed Out)")
         ConnectionList.remove((connection, address, client_key))
         try:
             Authorized_IDs.remove(session)
@@ -441,13 +443,13 @@ def broadcast_service(ADDRESS):
     server.settimeout(180)
 
     msg = server_broadcast_encode(host, port)
-    print("[INFO] Starting location broadcast")
+    Log.log(Log.INFO, "Starting host location broadcast")
     while running:
         server.sendto(msg, ("255.255.255.255", 5595))
         time.sleep(1.5)
 
     server.close()
-    print("[INFO] Location broadcast stopped ")
+    Log.log(Log.INFO, "Host location broadcast stopped ")
 
 def server_start():
     global running
@@ -458,7 +460,7 @@ def server_start():
     global Authorized_IDs
 
     #Socket server
-    print("[INFO] Server verifying network connectivity")
+    Log.log(Log.INFO, "Server verifying network connectivity...")
     network = False
     while not network:
         try:
@@ -508,7 +510,8 @@ def server_start():
     server.settimeout(SOCKET_TIMEOUT)
     server.bind(ADDRESS)
     server.listen()
-    print(f"[LISTENING] Server is listening on {HOST}")
+    Log.log(Log.INFO, f"Server is now listening on port {PORT} at {HOST}")
+
     bcast_thread = threading.Thread(target=broadcast_service, args=(ADDRESS,))
     bcast_thread.start()
     while running:
@@ -518,12 +521,12 @@ def server_start():
             ConnectionList.append((conn, addr))
             thread = threading.Thread(target=client_handshake, args=(conn, addr), daemon=True)
             thread.start()
-            ThreadSafe.print(f"[ACTIVE CONNECTIONS] {ConnectionList.length()}")
+            Log.log(Log.INFO, f"(ACTIVE SERVER CONNECTIONS) {ConnectionList.length()}")
         except socket.timeout:
             pass
 
 def server_stop():
-    ThreadSafe.print(f"[INFO] Stopping server...")
+    Log.log(Log.INFO, f"Stopping server...")
     global running
     for i in ConnectionList:
         if len(i) == 3:
@@ -539,11 +542,11 @@ def alert_all(message):
     for i in ConnectionList:
         if len(i) == 3:
             conn, addr, key = i
-            print(f"[INFO] Sent alert to {addr}")
+            Log.log(Log.INFO, f"Server sending alert to {addr}")
             send_encrypted_message(conn, (HTYPE_ALERT, server_id, server_auth), key, message)
 
 create_login_db()
-print(f"[STARTING] server on port {PORT}...")
+Log.log(Log.INFO, f"Starting server on port {PORT}...")
 running = True
 thread = threading.Thread(target=server_start, daemon=True)
 thread.start()

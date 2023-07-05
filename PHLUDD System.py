@@ -3,8 +3,12 @@ import pygame, sys
 import time
 import threading
 import subprocess
+import traceback
+import os
 
 pygame.init()
+if not os.path.exists("logs"):
+    os.makedirs("logs")
 
 from lib.config import *
 import lib.hardware as hardware
@@ -12,9 +16,11 @@ import lib.user_interface as ui
 import lib.util as util
 import lib.gmail_handle
 import web.server as Server
+import lib.logging as Logging
 
 #start watchdog process
 
+Log = Logging.Log("logs/phludd_log.log")
 
 def debug(config : Configuration):
     config.stream_mode = True
@@ -59,7 +65,7 @@ def gmail_setup():
 
         ready = SMTP.isReady()
         if not ready:
-            print("Gmail Setup did not complete successfuly, trying again in 5min")
+            Log.log(Log.WARNING, "Gmail Setup did not complete successfuly, trying again in 5min")
             pygame.time.set_timer(pygame.event.Event(api_retry, callback=gmail_setup), 300000)
         return ready
 
@@ -269,7 +275,7 @@ def setConfig(*args):
     sensor_array = [sensors.S0, sensors.S1, sensors.S2, sensors.S3, sensors.S4, sensors.S5, sensors.S6]
 
     for button in SensorToggleButtons:
-        print(f"[INFO] Sensor Button {SensorToggleButtons.index(button)} set {sensor_array[SensorToggleButtons.index(button)].enable}")
+        Log.log(Log.INFO, f"Sensor Button {SensorToggleButtons.index(button)} set {sensor_array[SensorToggleButtons.index(button)].enable}")
         button.setState(sensor_array[SensorToggleButtons.index(button)].enable)
 Server.Command.register("setConfig", 10, setConfig, usage, description)
 
@@ -610,4 +616,10 @@ loading()
 if running:
     spinner.halt()
     iris.idle_look()
-    main()
+    try:
+        main()
+    except Exception as e:
+        running = False
+        Log.log(Log.CRITICAL, "An unhandled exception has caused a Fatal Error and (PHLUDD System.py) must close!")
+        Log.log(Log.CRITICAL, f"{type(e)} | {e}")
+        Log.log(Log.TRACE, "\n"+''.join(traceback.format_tb(e.__traceback__)))

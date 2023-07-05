@@ -4,6 +4,10 @@ import platform
 from lib.exceptions import apiException
 import traceback
 
+import lib.logging as Logging
+
+Log = Logging.Log("logs/phludd_log.log")
+
 class Location:
     def __init__(self, api_key):
         self.maps_key = api_key
@@ -77,13 +81,13 @@ class Location:
             else:
                 raise apiException(response['error']['code'], response['error']['message'])
         except requests.exceptions.RequestException as error:
-            print(F'An error occured in location.py: {type(error)} | {error}')
-            print(''.join(traceback.format_tb(error.__traceback__)))
+            Log.log(Log.ERROR, F'An error occured in location.py: {type(error)} | {error}')
+            Log.log(Log.ERROR, ''.join(traceback.format_tb(error.__traceback__)))
             self._lastException = error
             success = False
         except apiException as error:
-            print(F'An error occured in location.py: {type(error)} {error.cod} | {error}')
-            print(''.join(traceback.format_tb(error.__traceback__)))
+            Log.log(Log.ERROR, F'An error occured in location.py: {type(error)} {error.cod} | {error}')
+            Log.log(Log.ERROR, ''.join(traceback.format_tb(error.__traceback__)))
             self._lastException = error
             success = False
         return lat, lon, success

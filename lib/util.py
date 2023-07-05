@@ -5,6 +5,10 @@ from PIL import Image
 import threading
 import psutil
 import subprocess
+import lib.logging as Logging
+
+Log = Logging.Log("logs/phludd_log.log")
+
 ## Util ##
 
 
@@ -364,7 +368,7 @@ class GIF:
                     self.idx = 0
                 pygame.time.set_timer(pygame.event.Event(self.update_event, msg="gif_update", callback=self.next_frame), delay)
             else:
-                print("Tried to update halted gif!")
+                Log.log(Log.DEBUG, f"Tried to update halted gif! ({self.filename})")
 
 
     class transform(NameSpace):
